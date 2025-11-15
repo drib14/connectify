@@ -1,0 +1,20 @@
+{
+  "name": "connectify",
+  "version": "1.0.0",
+  "description": "A MERN stack social media application with real-time chat and admin moderation features.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/drib14/Connectify.git"
+  },
+  "keywords": ["social media", "mern", "react", "nodejs", "chat", "admin"],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/drib14/Connectify/issues"
+  },
+  "homepage": "https://github.com/drib14/Connectify#readme"
+}
