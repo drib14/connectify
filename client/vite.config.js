@@ -12,6 +12,8 @@ export default defineConfig({
       },
     },
   },
+  // This configuration ensures that files with a .js extension are treated as .jsx,
+  // allowing them to be parsed correctly by the esbuild loader.
   esbuild: {
     loader: 'jsx',
     include: [
