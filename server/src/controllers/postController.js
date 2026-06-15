@@ -19,6 +19,12 @@ export const createPost = async (req, res) => {
 
     const populatedPost = await Post.findById(post._id)
       .populate('author', 'username avatar isPremium')
+      .populate({
+        path: 'sharedFrom',
+        populate: [
+          { path: 'author', select: 'username avatar isPremium' }
+        ]
+      })
       .populate('comments.author', 'username avatar isPremium');
 
     res.status(201).json(populatedPost);
@@ -37,6 +43,12 @@ export const getPulseFeed = async (req, res) => {
     const posts = await Post.find({ author: { $in: authorIds } })
       .populate('author', 'username avatar isPremium')
       .populate('comments.author', 'username avatar isPremium')
+      .populate({
+        path: 'sharedFrom',
+        populate: [
+          { path: 'author', select: 'username avatar isPremium' }
+        ]
+      })
       .sort({ createdAt: -1 });
 
     res.json(posts);
@@ -98,6 +110,12 @@ export const reactPost = async (req, res) => {
     
     const updatedPost = await Post.findById(id)
       .populate('author', 'username avatar isPremium')
+      .populate({
+        path: 'sharedFrom',
+        populate: [
+          { path: 'author', select: 'username avatar isPremium' }
+        ]
+      })
       .populate('comments.author', 'username avatar isPremium');
 
     res.json(updatedPost);
@@ -130,11 +148,50 @@ export const commentPost = async (req, res) => {
 
     const updatedPost = await Post.findById(id)
       .populate('author', 'username avatar isPremium')
+      .populate({
+        path: 'sharedFrom',
+        populate: [
+          { path: 'author', select: 'username avatar isPremium' }
+        ]
+      })
       .populate('comments.author', 'username avatar isPremium');
 
     res.json(updatedPost);
   } catch (error) {
     console.error('Comment Post Error:', error.message);
     res.status(500).json({ message: 'Failed to post comment' });
+  }
+};
+
+export const sharePost = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { content } = req.body;
+
+    const originalPost = await Post.findById(id);
+    if (!originalPost) {
+      return res.status(404).json({ message: 'Original post not found' });
+    }
+
+    const post = await Post.create({
+      author: req.user._id,
+      content: content || '',
+      sharedFrom: originalPost._id,
+    });
+
+    const populatedPost = await Post.findById(post._id)
+      .populate('author', 'username avatar isPremium')
+      .populate({
+        path: 'sharedFrom',
+        populate: [
+          { path: 'author', select: 'username avatar isPremium' }
+        ]
+      })
+      .populate('comments.author', 'username avatar isPremium');
+
+    res.status(201).json(populatedPost);
+  } catch (error) {
+    console.error('Share Post Error:', error.message);
+    res.status(500).json({ message: 'Failed to share post' });
   }
 };

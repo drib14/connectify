@@ -5,6 +5,7 @@ import {
   deletePost,
   reactPost,
   commentPost,
+  sharePost,
 } from '../controllers/postController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -17,5 +18,6 @@ router.route('/')
 router.delete('/:id', protect, deletePost);
 router.post('/:id/react', protect, reactPost);
 router.post('/:id/comment', protect, commentPost);
+router.post('/:id/share', protect, sharePost);
 
 export default router;

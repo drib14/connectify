@@ -2,7 +2,7 @@ import React, { useContext, useState } from 'react';
 import { AuthContext } from '../../context/AuthContext.jsx';
 import { VibeContext } from '../../context/VibeContext.jsx';
 import API from '../../services/api.js';
-import { Heart, MessageSquare, Music, Trash, Globe, Send } from 'lucide-react';
+import { Heart, MessageSquare, Music, Trash, Globe, Send, Share2, X } from 'lucide-react';
 
 const PostCard = ({ post, onPostUpdated, onPostDeleted }) => {
   const { user } = useContext(AuthContext);
@@ -13,6 +13,11 @@ const PostCard = ({ post, onPostUpdated, onPostDeleted }) => {
   // Translation state
   const [translatedText, setTranslatedText] = useState('');
   const [translating, setTranslating] = useState(false);
+
+  // Share states
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareCaption, setShareCaption] = useState('');
+  const [sharing, setSharing] = useState(false);
 
   const handleTranslate = async () => {
     if (translatedText) {
@@ -61,6 +66,22 @@ const PostCard = ({ post, onPostUpdated, onPostDeleted }) => {
       onPostDeleted(post._id);
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleShare = async () => {
+    setSharing(true);
+    try {
+      await API.post(`/posts/${post._id}/share`, { content: shareCaption });
+      setShowShareModal(false);
+      setShareCaption('');
+      alert('Shared post to your Pulse feed!');
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to share post.');
+    } finally {
+      setSharing(false);
     }
   };
 
@@ -200,6 +221,54 @@ const PostCard = ({ post, onPostUpdated, onPostDeleted }) => {
         </div>
       )}
 
+      {/* Nested original shared post content */}
+      {post.sharedFrom && (
+        <div className="glass-panel animate-fade-in" style={{ padding: '16px', border: '1px solid rgba(255, 255, 255, 0.08)', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <img
+              src={post.sharedFrom.author?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=50&q=80'}
+              alt=""
+              style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }}
+            />
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <span style={{ fontSize: '12px', fontWeight: 600 }}>{post.sharedFrom.author?.username || 'Deleted User'}</span>
+                {post.sharedFrom.author?.isPremium && <span className="premium-badge" style={{ fontSize: '8px' }}>Premium</span>}
+              </div>
+              <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                {new Date(post.sharedFrom.createdAt).toLocaleDateString()}
+              </span>
+            </div>
+          </div>
+
+          {post.sharedFrom.content && (
+            <p style={{ fontSize: '13px', lineHeight: '1.5', color: 'var(--text-main)', whiteSpace: 'pre-wrap' }}>
+              {post.sharedFrom.content}
+            </p>
+          )}
+
+          {post.sharedFrom.media && post.sharedFrom.media.length > 0 && (
+            <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-color)', maxHeight: '240px', display: 'flex', justifyContent: 'center', background: '#000' }}>
+              {post.sharedFrom.media[0].type === 'video' ? (
+                <video src={post.sharedFrom.media[0].url} controls style={{ width: '100%', maxHeight: '240px', objectFit: 'contain' }} />
+              ) : (
+                <img src={post.sharedFrom.media[0].url} alt="" style={{ width: '100%', maxHeight: '240px', objectFit: 'contain' }} />
+              )}
+            </div>
+          )}
+
+          {post.sharedFrom.vibe?.title && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(16, 185, 129, 0.04)', padding: '8px 12px', borderRadius: '8px' }}>
+              <img src={post.sharedFrom.vibe.coverUrl} alt="" style={{ width: '28px', height: '28px', borderRadius: '4px' }} />
+              <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                <span style={{ fontSize: '11px', fontWeight: 600 }}>{post.sharedFrom.vibe.title}</span>
+                <span style={{ fontSize: '9px', color: 'var(--text-muted)' }}>{post.sharedFrom.vibe.artist}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Action / Reactions buttons */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-color)', borderBottom: '1px solid var(--border-color)', padding: '10px 0' }}>
         <div style={{ display: 'flex', gap: '6px' }}>
@@ -242,23 +311,45 @@ const PostCard = ({ post, onPostUpdated, onPostDeleted }) => {
           })}
         </div>
 
-        <button
-          onClick={() => setShowComments(!showComments)}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: 'var(--text-muted)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            fontSize: '13px',
-            cursor: 'pointer',
-            fontWeight: 500,
-          }}
-        >
-          <MessageSquare size={16} />
-          <span>{post.comments.length} Comments</span>
-        </button>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button
+            onClick={() => setShowComments(!showComments)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-muted)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '13px',
+              cursor: 'pointer',
+              fontWeight: 500,
+            }}
+          >
+            <MessageSquare size={16} />
+            <span>{post.comments.length} Comments</span>
+          </button>
+
+          {!post.sharedFrom && (
+            <button
+              onClick={() => setShowShareModal(true)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-muted)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '13px',
+                cursor: 'pointer',
+                fontWeight: 500,
+              }}
+            >
+              <Share2 size={16} />
+              <span>Share</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Comments section toggle layout */}
@@ -294,6 +385,61 @@ const PostCard = ({ post, onPostUpdated, onPostDeleted }) => {
               <Send size={14} />
             </button>
           </form>
+        </div>
+      )}
+
+      {/* Share/Repost Modal */}
+      {showShareModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.6)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000,
+        }}>
+          <div className="glass-panel" style={{ width: '90%', maxWidth: '440px', padding: '24px', position: 'relative', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <button
+              onClick={() => {
+                setShowShareModal(false);
+                setShareCaption('');
+              }}
+              style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+            >
+              <X size={20} />
+            </button>
+
+            <h2 style={{ fontSize: '18px' }}>Share to Pulse Feed</h2>
+
+            <textarea
+              placeholder="Say something about this post..."
+              className="input-field"
+              rows={3}
+              value={shareCaption}
+              onChange={(e) => setShareCaption(e.target.value)}
+            />
+
+            {/* Micro-preview of the post to be shared */}
+            <div style={{ border: '1px solid var(--border-color)', padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)', display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <img src={post.author.avatar} alt="" style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '12px', fontWeight: 600 }}>{post.author.username}</span>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '300px' }}>
+                  {post.content || (post.media?.length > 0 ? 'Media Attachment' : 'Spotify track attachment')}
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={handleShare}
+              disabled={sharing}
+              className="btn-primary"
+              style={{ width: '100%', justifyContent: 'center' }}
+            >
+              <Share2 size={16} />
+              <span>{sharing ? 'Sharing...' : 'Share Now'}</span>
+            </button>
+          </div>
         </div>
       )}
     </article>

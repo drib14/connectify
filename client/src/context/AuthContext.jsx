@@ -47,10 +47,10 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (username, email, password) => {
+  const register = async (registerData) => {
     setLoading(true);
     try {
-      const response = await API.post('/auth/register', { username, email, password });
+      const response = await API.post('/auth/register', registerData);
       const { token, refreshToken, ...userData } = response.data;
       
       sessionStorage.setItem('token', token);

@@ -196,7 +196,7 @@ export const askAura = async (req, res) => {
     }
 
     const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
       {
         contents: [{ parts: [{ text: finalPrompt }] }],
       }
@@ -209,3 +209,33 @@ export const askAura = async (req, res) => {
     res.status(500).json({ message: 'Failed to get assistance from Aura' });
   }
 };
+
+export const getSpotifyLyrics = async (req, res) => {
+  try {
+    const { title, artist } = req.query;
+    if (!title || !artist) {
+      return res.status(400).json({ message: 'Title and artist parameters are required' });
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ message: 'Gemini API key is not configured' });
+    }
+
+    const prompt = `You are Aura, the Connectify music assistant. Provide the lyrics for the song "${title}" by "${artist}". If the exact lyrics are unavailable or copyrighted, write a beautiful, accurate, and poetic representation of the song lyrics inspired by its theme. Return ONLY the lyrics formatted with line breaks, with no comments, introductory notes, outro, artist labels, or formatting tags.`;
+
+    const response = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
+      {
+        contents: [{ parts: [{ text: prompt }] }],
+      }
+    );
+
+    const lyrics = response.data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Lyrics not available.';
+    res.json({ lyrics: lyrics.trim() });
+  } catch (error) {
+    console.error('Gemini Lyrics Error:', error.response?.data || error.message);
+    res.status(500).json({ message: 'Failed to retrieve lyrics' });
+  }
+};
+

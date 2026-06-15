@@ -28,6 +28,11 @@ const PostSchema = new mongoose.Schema(
       previewUrl: { type: String, default: '' },
       coverUrl: { type: String, default: '' },
     },
+    sharedFrom: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Post',
+      default: null,
+    },
     reactions: [
       {
         user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },

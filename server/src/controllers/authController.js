@@ -14,8 +14,8 @@ const generateRefreshToken = (id) => {
 
 export const registerUser = async (req, res) => {
   try {
-    const { firstName, lastName, username, email, password, confirmPassword, privacyPolicyAccepted } = req.body;
-    if (!firstName || !lastName || !username || !email || !password || !confirmPassword) {
+    const { firstName, lastName, username, email, password, confirmPassword, privacyPolicyAccepted, dob } = req.body;
+    if (!firstName || !lastName || !username || !email || !password || !confirmPassword || !dob) {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
@@ -46,6 +46,7 @@ export const registerUser = async (req, res) => {
       username,
       email,
       password: hashedPassword,
+      dob,
     });
 
     if (user) {

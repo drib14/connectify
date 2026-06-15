@@ -2,7 +2,7 @@ import React, { useContext, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext.jsx';
 import API from '../services/api.js';
-import { Infinity, Lock, Mail, User, ShieldAlert, Sparkles, CheckCircle, X, Check, ArrowRight } from 'lucide-react';
+import { Infinity, Lock, Mail, User, ShieldAlert, Sparkles, CheckCircle, X, Check, Eye, EyeOff, Calendar } from 'lucide-react';
 
 const Login = () => {
   const { login, register, user } = useContext(AuthContext);
@@ -18,6 +18,15 @@ const Login = () => {
   const [privacyPolicyAccepted, setPrivacyPolicyAccepted] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   
+  // DOB states
+  const [dobMonth, setDobMonth] = useState('');
+  const [dobDay, setDobDay] = useState('');
+  const [dobYear, setDobYear] = useState('');
+
+  // Password visibility states
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -27,6 +36,24 @@ const Login = () => {
   const [forgotSuccess, setForgotSuccess] = useState('');
   const [forgotError, setForgotError] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
+
+  // Dropdown arrays
+  const months = [
+    { value: '01', label: 'January' },
+    { value: '02', label: 'February' },
+    { value: '03', label: 'March' },
+    { value: '04', label: 'April' },
+    { value: '05', label: 'May' },
+    { value: '06', label: 'June' },
+    { value: '07', label: 'July' },
+    { value: '08', label: 'August' },
+    { value: '09', label: 'September' },
+    { value: '10', label: 'October' },
+    { value: '11', label: 'November' },
+    { value: '12', label: 'December' },
+  ];
+  const days = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0'));
+  const years = Array.from({ length: 90 }, (_, i) => String(new Date().getFullYear() - 10 - i)); // Ages 10-100
 
   // If already logged in, redirect home
   React.useEffect(() => {
@@ -62,6 +89,10 @@ const Login = () => {
         setError('First Name and Last Name are required.');
         return;
       }
+      if (!dobMonth || !dobDay || !dobYear) {
+        setError('Please specify your complete Date of Birth.');
+        return;
+      }
       if (strengthPoints < 4) {
         setError('Please choose a stronger password matching the construction instructions.');
         return;
@@ -76,8 +107,19 @@ const Login = () => {
       }
 
       setLoading(true);
+      const dobDate = `${dobYear}-${dobMonth}-${dobDay}`;
+      
       try {
-        await register(username, email, password);
+        await register({
+          firstName,
+          lastName,
+          username,
+          email,
+          password,
+          confirmPassword,
+          privacyPolicyAccepted,
+          dob: dobDate,
+        });
         navigate('/');
       } catch (err) {
         setError(err);
@@ -223,18 +265,72 @@ const Login = () => {
             />
           </div>
 
+          {isRegister && (
+            /* Custom DOB Dropdowns */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Calendar size={14} />
+                <span>Date of Birth</span>
+              </label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <select
+                  value={dobMonth}
+                  onChange={(e) => setDobMonth(e.target.value)}
+                  required
+                  style={{ flex: 2 }}
+                >
+                  <option value="" disabled>Month</option>
+                  {months.map((m) => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={dobDay}
+                  onChange={(e) => setDobDay(e.target.value)}
+                  required
+                  style={{ flex: 1 }}
+                >
+                  <option value="" disabled>Day</option>
+                  {days.map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={dobYear}
+                  onChange={(e) => setDobYear(e.target.value)}
+                  required
+                  style={{ flex: 1.5 }}
+                >
+                  <option value="" disabled>Year</option>
+                  {years.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
           {/* Password input */}
           <div style={{ position: 'relative' }}>
             <Lock size={18} style={{ position: 'absolute', left: '12px', top: '15px', color: 'var(--text-muted)' }} />
             <input
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               placeholder="Password"
               className="input-field"
-              style={{ paddingLeft: '40px' }}
+              style={{ paddingLeft: '40px', paddingRight: '40px' }}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              style={{ position: 'absolute', right: '12px', top: '15px', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
           </div>
 
           {/* Password strength guide (Only on signup) */}
@@ -290,14 +386,21 @@ const Login = () => {
             <div style={{ position: 'relative' }}>
               <Lock size={18} style={{ position: 'absolute', left: '12px', top: '15px', color: 'var(--text-muted)' }} />
               <input
-                type="password"
+                type={showConfirmPassword ? 'text' : 'password'}
                 placeholder="Confirm Password"
                 className="input-field"
-                style={{ paddingLeft: '40px' }}
+                style={{ paddingLeft: '40px', paddingRight: '40px' }}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
               />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                style={{ position: 'absolute', right: '12px', top: '15px', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+              >
+                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
           )}
 

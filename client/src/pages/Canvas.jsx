@@ -134,7 +134,9 @@ const Canvas = () => {
   }
 
   const isSelf = currentUser?.username === username;
-  const isFriend = currentUser?.circle.some((f) => f._id === canvasUser._id || f.username === canvasUser.username);
+  const isFriend = (currentUser && currentUser.circle && Array.isArray(currentUser.circle))
+    ? currentUser.circle.some((f) => f && (f._id === canvasUser._id || f.username === canvasUser.username))
+    : false;
 
   return (
     <div className="app-container">
