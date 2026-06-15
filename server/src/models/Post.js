@@ -33,6 +33,11 @@ const PostSchema = new mongoose.Schema(
       ref: 'Post',
       default: null,
     },
+    group: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Group',
+      default: null,
+    },
     reactions: [
       {
         user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },

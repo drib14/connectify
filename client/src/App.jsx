@@ -19,6 +19,7 @@ import Premium from './pages/Premium.jsx';
 import Login from './pages/Login.jsx';
 import Legal from './pages/Legal.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
+import Groups from './pages/Groups.jsx';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useContext(AuthContext);
@@ -85,6 +86,14 @@ const AppContent = () => {
           element={
             <ProtectedRoute>
               <Premium />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/groups"
+          element={
+            <ProtectedRoute>
+              <Groups />
             </ProtectedRoute>
           }
         />

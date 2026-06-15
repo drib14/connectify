@@ -1,4 +1,5 @@
 import User from '../models/User.js';
+import { createNotificationAndEmit } from './notificationController.js';
 
 // CANVAS PROFILE ACTIONS
 export const updateCanvas = async (req, res) => {
@@ -75,6 +76,11 @@ export const sendCircleRequest = async (req, res) => {
     targetUser.circleRequests.push(senderId);
     await targetUser.save();
 
+    await createNotificationAndEmit(req, {
+      recipient: targetUserId,
+      type: 'circle_request',
+    });
+
     res.json({ message: 'Circle request sent successfully' });
   } catch (error) {
     console.error('Circle Request Error:', error.message);
@@ -109,6 +115,11 @@ export const acceptCircleRequest = async (req, res) => {
 
     await user.save();
     await requester.save();
+
+    await createNotificationAndEmit(req, {
+      recipient: requesterId,
+      type: 'circle_accept',
+    });
 
     res.json({ message: 'Circle request accepted' });
   } catch (error) {

@@ -85,6 +85,10 @@ const Sidebar = () => {
             <Users size={18} className="text-gradient" />
             <span style={{ fontSize: '14px', fontWeight: 500 }}>Canvas Profile</span>
           </Link>
+          <Link to="/groups" style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-main)', textDecoration: 'none', padding: '8px', borderRadius: '8px', transition: '0.2s' }} className="btn-secondary">
+            <Users size={18} style={{ color: '#ec4899' }} />
+            <span style={{ fontSize: '14px', fontWeight: 500 }}>Community Groups</span>
+          </Link>
           <Link to="/premium" style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-main)', textDecoration: 'none', padding: '8px', borderRadius: '8px', transition: '0.2s' }} className="btn-secondary">
             <Sparkles size={18} style={{ color: '#fbbf24' }} />
             <span style={{ fontSize: '14px', fontWeight: 500 }}>Unlock Aura AI</span>

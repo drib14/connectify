@@ -1,5 +1,6 @@
 import Post from '../models/Post.js';
 import User from '../models/User.js';
+import { createNotificationAndEmit } from './notificationController.js';
 
 export const createPost = async (req, res) => {
   try {
@@ -40,7 +41,7 @@ export const getPulseFeed = async (req, res) => {
     // Feed consists of the user's posts and user's circle posts
     const authorIds = [req.user._id, ...user.circle];
 
-    const posts = await Post.find({ author: { $in: authorIds } })
+    const posts = await Post.find({ author: { $in: authorIds }, group: null })
       .populate('author', 'username avatar isPremium')
       .populate('comments.author', 'username avatar isPremium')
       .populate({
@@ -104,6 +105,11 @@ export const reactPost = async (req, res) => {
     } else {
       // Add new reaction
       post.reactions.push({ user: userId, type });
+      await createNotificationAndEmit(req, {
+        recipient: post.author,
+        type: 'like',
+        post: post._id,
+      });
     }
 
     await post.save();
@@ -146,6 +152,12 @@ export const commentPost = async (req, res) => {
 
     await post.save();
 
+    await createNotificationAndEmit(req, {
+      recipient: post.author,
+      type: 'comment',
+      post: post._id,
+    });
+
     const updatedPost = await Post.findById(id)
       .populate('author', 'username avatar isPremium')
       .populate({
@@ -177,6 +189,12 @@ export const sharePost = async (req, res) => {
       author: req.user._id,
       content: content || '',
       sharedFrom: originalPost._id,
+    });
+
+    await createNotificationAndEmit(req, {
+      recipient: originalPost.author,
+      type: 'share',
+      post: originalPost._id,
     });
 
     const populatedPost = await Post.findById(post._id)

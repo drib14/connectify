@@ -17,6 +17,8 @@ import momentRoutes from './routes/momentRoutes.js';
 import clipRoutes from './routes/clipRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
 import integrationRoutes from './routes/integrationRoutes.js';
+import groupRoutes from './routes/groupRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 
 dotenv.config();
 connectDB();
@@ -30,6 +32,7 @@ const io = new Server(server, {
     credentials: true,
   },
 });
+app.set('socketio', io);
 
 app.use(cors({
   origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
@@ -62,6 +65,8 @@ app.use('/api/moments', momentRoutes);
 app.use('/api/clips', clipRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/integrations', integrationRoutes);
+app.use('/api/groups', groupRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Base route
 app.get('/', (req, res) => {
