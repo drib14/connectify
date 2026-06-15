@@ -17,6 +17,8 @@ import Whisper from './pages/Whisper.jsx';
 import Clips from './pages/Clips.jsx';
 import Premium from './pages/Premium.jsx';
 import Login from './pages/Login.jsx';
+import Legal from './pages/Legal.jsx';
+import ResetPassword from './pages/ResetPassword.jsx';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useContext(AuthContext);
@@ -44,6 +46,8 @@ const AppContent = () => {
       {user && <Navbar />}
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/legal" element={<Legal />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
         <Route
           path="/"
           element={
