@@ -1,93 +1,37 @@
 # Dependencies
 node_modules/
-
-# Expo
-.expo/
-.expo-shared/
-dist/
-web-build/
-
-# React Native
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
-
-# Environment variables
-.env
-.env.*
-!.env.example
-
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# IDE / Editor
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Metro
-.metro-health-check*
-
-# Bundles
-*.bundle
-
-# Build folders
-android/app/build/
-android/build/
-ios/build/
-
-# Android
-android/.gradle/
-android/local.properties
-android/app/debug/
-android/app/release/
-
-# iOS
-ios/Pods/
-ios/.symlinks/
-ios/DerivedData/
+.pnp
+.pnp.js
 
 # Testing
 coverage/
 
-# TypeScript
-*.tsbuildinfo
+# Production Build
+dist/
+build/
 
-# Firebase / Google Services
-google-services.json
-GoogleService-Info.plist
+# Local Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-# Secrets / Keys
-*.keystore
-*.pem
-*.cer
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# Temporary files
-tmp/
-temp/
-
-# Package manager lock backups
-package-lock.json.*
-yarn.lock.*
-pnpm-lock.yaml.*
-
-# Expo Router
-app-example/
-
-# Mac
-*.xcuserstate
-
-# Misc
-*.orig
+# Editor/OS settings
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
+.gemini/
