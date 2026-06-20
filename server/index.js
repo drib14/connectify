@@ -127,6 +127,7 @@ app.use('/api/events', require('./routes/events'));
 app.use('/api/stories', require('./routes/stories'));
 app.use('/api/reels', require('./routes/reels'));
 app.use('/api/ads', require('./routes/ads'));
+app.use('/api/capsules', require('./routes/timeCapsules'));
 
 // Base route
 app.get('/', (req, res) => {
