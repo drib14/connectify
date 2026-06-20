@@ -11,7 +11,7 @@ const notificationSchema = new mongoose.Schema({
       'challengeInvite', 'communityInvite', 'eventReminder',
       'crisisAlert', 'factCheckResult', 'badgeEarned',
       'timeCapsuleUnlocked', 'burnoutWarning', 'partnerRequest',
-      'volunteerMatch', 'projectInvite', 'welcome',
+      'volunteerMatch', 'projectInvite', 'welcome', 'tip',
     ],
     required: true,
   },

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import API from '../../services/api';
 import { formatDistanceToNow } from 'date-fns';
-import { Link } from 'react-router-dom';
+import { Link, NavLink, useParams } from 'react-router-dom';
 import {
   HiBell,
   HiHeart,
@@ -42,7 +42,8 @@ const typeIcons = {
   partnerRequest: FaHandshake,
   volunteerMatch: HiHand,
   projectInvite: FaRocket,
-  welcome: HiSparkles
+  welcome: HiSparkles,
+  tip: HiSparkles
 };
 
 const typeColors = {
@@ -65,12 +66,14 @@ const typeColors = {
   partnerRequest: '#a855f7',
   volunteerMatch: '#10b981',
   projectInvite: '#0ea5e9',
-  welcome: '#00d4aa'
+  welcome: '#00d4aa',
+  tip: '#fbbf24'
 };
 
 const Notifications = () => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { filter } = useParams();
 
   useEffect(() => {
     API.get('/notifications')
@@ -89,18 +92,58 @@ const Notifications = () => {
     setNotifications(n => n.map(x => ({ ...x, read: true })));
   };
 
+  const filteredNotifications = notifications.filter(n => {
+    if (!filter || filter === 'all') return true;
+    if (filter === 'likes') return n.type === 'like';
+    if (filter === 'comments') return n.type === 'comment';
+    if (filter === 'follows') return n.type === 'follow';
+    if (filter === 'tips') return n.type === 'tip';
+    return true;
+  });
+
   return (
     <div style={{ maxWidth: 700, margin: '0 auto' }}>
-      <div className="flex items-center justify-between" style={{ marginBottom: 'var(--space-lg)' }}>
+      <div className="flex items-center justify-between" style={{ marginBottom: 'var(--space-md)' }}>
         <h1 className="heading-2" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
           <HiBell /> Notifications
         </h1>
         <button className="btn btn-ghost btn-sm" onClick={markAllRead}>Mark all read</button>
       </div>
 
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', marginBottom: 'var(--space-lg)', paddingBottom: '8px' }}>
+        {[
+          { label: 'All', path: '/notifications' },
+          { label: 'Likes', path: '/notifications/likes' },
+          { label: 'Comments', path: '/notifications/comments' },
+          { label: 'Follows', path: '/notifications/follows' },
+          { label: 'Tips', path: '/notifications/tips' },
+        ].map(tab => (
+          <NavLink
+            key={tab.path}
+            to={tab.path}
+            end
+            style={({ isActive }) => ({
+              padding: '8px 16px',
+              borderRadius: 'var(--radius-full)',
+              fontSize: 'var(--text-xs)',
+              fontWeight: 600,
+              textDecoration: 'none',
+              whiteSpace: 'nowrap',
+              background: isActive ? 'var(--primary)' : 'rgba(255,255,255,0.02)',
+              color: isActive ? 'var(--bg-primary)' : 'var(--text-secondary)',
+              border: isActive ? '1px solid var(--primary)' : '1px solid rgba(255,255,255,0.06)',
+              transition: 'all var(--transition-fast)'
+            })}
+          >
+            {tab.label}
+          </NavLink>
+        ))}
+      </div>
+
       {loading ? (
         <SkeletonLoader type="notification" count={5} />
-      ) : notifications.length === 0 ? (
+      ) : filteredNotifications.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state-icon">
             <HiInbox />
@@ -110,7 +153,7 @@ const Notifications = () => {
         </div>
       ) : (
         <div className="flex flex-col gap-xs">
-          {notifications.map(n => {
+          {filteredNotifications.map(n => {
             const Icon = typeIcons[n.type] || HiSparkles;
             const color = typeColors[n.type] || 'var(--text-secondary)';
             return (

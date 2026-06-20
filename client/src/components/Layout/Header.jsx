@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { HiSearch, HiBell, HiPlus, HiLogout, HiUser, HiCog } from 'react-icons/hi';
+import { HiSearch, HiBell, HiPlus, HiLogout, HiUser, HiCog, HiFlag, HiQuestionMarkCircle, HiBookOpen } from 'react-icons/hi';
 import API from '../../services/api';
 import ConfirmModal from '../UI/ConfirmModal';
+import Modal from '../UI/Modal';
+import toast from 'react-hot-toast';
 import './Header.css';
 
 const Header = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -27,8 +29,19 @@ const Header = () => {
     };
     fetchUnread();
     const interval = setInterval(fetchUnread, 30000);
-    return () => clearInterval(interval);
+
+    const handleNewNotification = () => {
+      setUnreadCount(prev => prev + 1);
+    };
+    window.addEventListener('new_notification', handleNewNotification);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('new_notification', handleNewNotification);
+    };
   }, []);
+
+
 
   useEffect(() => {
     const handleClick = (e) => {
@@ -99,8 +112,30 @@ const Header = () => {
         )}
       </div>
 
+      {/* Top Nav Links */}
+      <nav className="header-nav-links hide-mobile">
+        <NavLink to="/goals" className={({ isActive }) => `header-nav-link ${isActive ? 'active' : ''}`}>
+          <HiFlag />
+          <span>Goals</span>
+        </NavLink>
+        <NavLink to="/questions" className={({ isActive }) => `header-nav-link ${isActive ? 'active' : ''}`}>
+          <HiQuestionMarkCircle />
+          <span>Q&A Hub</span>
+        </NavLink>
+        <NavLink to="/journal" className={({ isActive }) => `header-nav-link ${isActive ? 'active' : ''}`}>
+          <HiBookOpen />
+          <span>Journal</span>
+        </NavLink>
+      </nav>
+
       {/* Actions */}
       <div className="header-actions">
+        {user && (
+          <button className="header-icon-btn header-wallet-btn" onClick={() => navigate('/settings/subscription')} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--warm)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 var(--space-xs)' }} title="Peace Wallet">
+            <span style={{ fontSize: '15px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>🪙 {user.coins || 0}</span>
+          </button>
+        )}
+
         <button className="btn btn-primary btn-sm header-create-btn" onClick={() => navigate('/feed')}>
           <HiPlus /> <span className="hide-mobile">Create</span>
         </button>
@@ -112,7 +147,7 @@ const Header = () => {
 
         {/* User Menu */}
         <div className="header-user-menu" ref={menuRef}>
-          <button className="header-avatar-btn" onClick={() => setShowUserMenu(!showUserMenu)}>
+          <button className="header-avatar-btn" onClick={() => setShowUserMenu(!showUserMenu)} style={{ border: user?.isPremium ? '2px solid #d946ef' : 'none', borderRadius: '50%', padding: user?.isPremium ? '2px' : '0' }}>
             {user?.avatar ? (
               <img src={user.avatar} alt={user.firstName} className="avatar avatar-sm" />
             ) : (
@@ -150,6 +185,8 @@ const Header = () => {
         message="Are you sure you want to log out of Connectify?"
         confirmText="Log Out"
       />
+
+
     </header>
   );
 };

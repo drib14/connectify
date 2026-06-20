@@ -47,3 +47,10 @@
   .profile-stats { justify-content: center; }
   .profile-actions { justify-content: center; }
 }
+
+.profile-avatar-container:hover .profile-avatar-edit-overlay {
+  opacity: 1 !important;
+}
+.profile-cover-edit-btn:hover {
+  background: rgba(0,0,0,0.85) !important;
+}

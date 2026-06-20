@@ -12,11 +12,14 @@ import {
   HiUsers,
   HiHeart,
   HiTag,
-  HiInbox
+  HiInbox,
+  HiTrash
 } from 'react-icons/hi';
 import { FaFire, FaPause, FaDumbbell, FaPalette, FaCoins } from 'react-icons/fa';
+import { useAuth } from '../../context/AuthContext';
 import SkeletonLoader from '../../components/UI/SkeletonLoader';
 import Modal from '../../components/UI/Modal';
+import ConfirmModal from '../../components/UI/ConfirmModal';
 
 const categoryConfig = {
   fitness: { icon: FaDumbbell, color: '#ef4444' },
@@ -36,6 +39,8 @@ const Goals = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', category: 'personal', targetDate: '', isPublic: true });
   const [filter, setFilter] = useState('active');
+  const [goalToDelete, setGoalToDelete] = useState(null);
+  const { refreshUser } = useAuth();
 
   useEffect(() => {
     fetchGoals();
@@ -71,7 +76,18 @@ const Goals = () => {
       await API.put(`/goals/${id}/progress`, { progress });
       toast.success(progress >= 100 ? 'Goal completed! +20 pts' : 'Progress updated!');
       fetchGoals();
+      refreshUser();
     } catch (e) {}
+  };
+
+  const handleDeleteGoal = async (goalId) => {
+    try {
+      await API.delete(`/goals/${goalId}`);
+      toast.success('Goal deleted.');
+      setGoals(prev => prev.filter(g => g._id !== goalId));
+    } catch (e) {
+      toast.error('Failed to delete goal.');
+    }
   };
 
   return (
@@ -143,9 +159,14 @@ const Goals = () => {
                       </span>
                     </div>
                   </div>
-                  <span className={`badge ${goal.status === 'completed' ? 'badge-success' : goal.status === 'active' ? 'badge-primary' : 'badge-warm'}`}>
-                    {goal.status}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className={`badge ${goal.status === 'completed' ? 'badge-success' : goal.status === 'active' ? 'badge-primary' : 'badge-warm'}`}>
+                      {goal.status}
+                    </span>
+                    <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setGoalToDelete(goal._id)} title="Delete Goal">
+                      <HiTrash />
+                    </button>
+                  </div>
                 </div>
                 {goal.description && <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: 'var(--space-sm)' }}>{goal.description}</p>}
                 <div className="flex items-center gap-md">
@@ -171,6 +192,15 @@ const Goals = () => {
           })}
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={goalToDelete !== null}
+        onClose={() => setGoalToDelete(null)}
+        onConfirm={() => handleDeleteGoal(goalToDelete)}
+        title="Delete Goal"
+        message="Are you sure you want to delete this goal? This action is permanent."
+        confirmText="Delete"
+      />
     </div>
   );
 };

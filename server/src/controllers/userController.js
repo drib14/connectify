@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Post = require('../models/Post');
 const Notification = require('../models/Notification');
+const { createCheckoutSession, retrieveCheckoutSession } = require('../services/paymongoService');
 
 // Get user profile
 const getProfile = async (req, res) => {
@@ -375,11 +376,124 @@ const updateUsageTime = async (req, res) => {
   }
 };
 
+// Create payment checkout session
+const createPaymentCheckout = async (req, res) => {
+  try {
+    const { type, amount } = req.body;
+    const user = req.user;
+
+    let checkoutAmount = 0;
+    let description = '';
+
+    if (type === 'premium') {
+      checkoutAmount = 499;
+      description = 'Connectify Premium Subscription (1 Month)';
+    } else if (type === 'coins') {
+      const coinAmount = parseInt(amount, 10);
+      if (isNaN(coinAmount) || ![100, 500, 1000].includes(coinAmount)) {
+        return res.status(400).json({ message: 'Invalid coins package amount.' });
+      }
+
+      if (coinAmount === 100) checkoutAmount = 249;
+      else if (coinAmount === 500) checkoutAmount = 999;
+      else if (coinAmount === 1000) checkoutAmount = 1749;
+
+      description = `Connectify Peace Coins Package (${coinAmount} Coins)`;
+    } else {
+      return res.status(400).json({ message: 'Invalid checkout type.' });
+    }
+
+    const host = process.env.CLIENT_URL || 'http://localhost:5173';
+    const successUrl = `${host}/settings/subscription?status=success&session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${host}/settings/subscription?status=cancel`;
+
+    const session = await createCheckoutSession({
+      amount: checkoutAmount,
+      name: `${user.firstName} ${user.lastName}`,
+      email: user.email,
+      description,
+      successUrl,
+      cancelUrl,
+    });
+
+    res.json({
+      checkoutUrl: session.checkoutUrl,
+      sessionId: session.id,
+    });
+  } catch (error) {
+    console.error('Create checkout error:', error);
+    res.status(500).json({ message: error.message || 'Server error.' });
+  }
+};
+
+// Verify payment checkout
+const verifyPayment = async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    if (!sessionId) {
+      return res.status(400).json({ message: 'Session ID is required.' });
+    }
+
+    const session = await retrieveCheckoutSession(sessionId);
+    if (session.status !== 'paid') {
+      return res.status(400).json({ message: 'Payment has not been completed.' });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+
+    let appliedMessage = '';
+    let rewardPoints = 0;
+
+    const desc = session.description || '';
+    if (desc.includes('Premium')) {
+      user.isPremium = true;
+      user.contributionScore = (user.contributionScore || 0) + 20;
+      appliedMessage = '🎉 Connectify Premium is now active! Enjoy your glowing profile border.';
+      rewardPoints = 20;
+    } else if (desc.includes('Coins')) {
+      let coinAmount = 100;
+      if (desc.includes('500')) coinAmount = 500;
+      else if (desc.includes('1000')) coinAmount = 1000;
+
+      user.coins = (user.coins || 0) + coinAmount;
+      user.contributionScore = (user.contributionScore || 0) + 5;
+      appliedMessage = `🪙 Successfully credited ${coinAmount} Peace Coins to your wallet!`;
+      rewardPoints = 5;
+    } else {
+      return res.status(400).json({ message: 'Unknown checkout item description.' });
+    }
+
+    await user.save();
+
+    const { createAndSendNotification } = require('../services/notificationService');
+    await createAndSendNotification({
+      recipient: user._id,
+      sender: user._id,
+      type: 'badgeEarned',
+      message: appliedMessage,
+      link: `/settings/subscription`,
+    });
+
+    res.json({
+      message: 'Payment verified successfully!',
+      user: {
+        isPremium: user.isPremium,
+        coins: user.coins,
+        contributionScore: user.contributionScore,
+      }
+    });
+  } catch (error) {
+    console.error('Verify payment error:', error);
+    res.status(500).json({ message: error.message || 'Server error.' });
+  }
+};
+
 module.exports = {
   getProfile, updateProfile, updateTrustCircles, toggleFollow,
   updateSkillShowcase, deleteSkillShowcase,
   requestAccountabilityPartner, respondAccountabilityRequest,
   updateDigitalLegacy, getPrivacyDashboard,
   searchUsers, getSuggestedUsers, createDisposableProfile,
-  updateUsageTime,
+  updateUsageTime, createPaymentCheckout, verifyPayment,
 };

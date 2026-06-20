@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import API from '../../services/api';
 import toast from 'react-hot-toast';
-import { HiBookOpen, HiDocumentText, HiInbox, HiHeart, HiFlag } from 'react-icons/hi';
+import { HiBookOpen, HiDocumentText, HiInbox, HiHeart, HiFlag, HiTrash } from 'react-icons/hi';
 import { FaSmileBeam, FaSmile, FaMeh, FaFrown, FaSadTear, FaPen } from 'react-icons/fa';
 import SkeletonLoader from '../../components/UI/SkeletonLoader';
 import Modal from '../../components/UI/Modal';
+import ConfirmModal from '../../components/UI/ConfirmModal';
 
 const moodOptions = [
   { value: 'great', icon: FaSmileBeam, label: 'Great', color: '#22c55e' },
@@ -19,6 +20,7 @@ const Journal = () => {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ mood: 'okay', reflection: '', gratitude: '', goals: '' });
+  const [entryToDelete, setEntryToDelete] = useState(null);
 
   useEffect(() => {
     API.get('/journal')
@@ -43,6 +45,19 @@ const Journal = () => {
       API.get('/journal').then(({ data }) => setJournal(data));
     } catch (e) {
       toast.error('Failed.');
+    }
+  };
+
+  const handleDeleteEntry = async (entryId) => {
+    try {
+      await API.delete(`/journal/entry/${entryId}`);
+      toast.success('Journal entry deleted.');
+      setJournal(prev => ({
+        ...prev,
+        entries: prev.entries.filter(e => e._id !== entryId)
+      }));
+    } catch (e) {
+      toast.error('Failed to delete entry.');
     }
   };
 
@@ -136,6 +151,9 @@ const Journal = () => {
                       </div>
                     </div>
                   </div>
+                  <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setEntryToDelete(entry._id)} title="Delete Entry">
+                    <HiTrash />
+                  </button>
                 </div>
                 {entry.reflection && (
                   <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 'var(--space-sm)', whiteSpace: 'pre-wrap' }}>
@@ -171,6 +189,15 @@ const Journal = () => {
           })}
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={entryToDelete !== null}
+        onClose={() => setEntryToDelete(null)}
+        onConfirm={() => handleDeleteEntry(entryToDelete)}
+        title="Delete Journal Entry"
+        message="Are you sure you want to delete this journal entry? This will permanently erase your private reflection."
+        confirmText="Delete"
+      />
     </div>
   );
 };

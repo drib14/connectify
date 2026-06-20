@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   HiHome, HiGlobeAlt, HiUserGroup, HiFlag, HiCalendar,
@@ -42,15 +42,15 @@ const Sidebar = () => {
   return (
     <aside className="sidebar" id="sidebar">
       {/* Logo */}
-      <div className="sidebar-logo">
+      <Link to="/feed" className="sidebar-logo" style={{ textDecoration: 'none', color: 'inherit' }}>
         <img src="/logo.png" alt="Connectify" className="sidebar-logo-icon" />
         <span className="sidebar-logo-text">Connectify</span>
-      </div>
+      </Link>
 
       {/* Navigation */}
       <nav className="sidebar-nav">
         {navSections.map((section) => (
-          <div key={section.title} className="sidebar-section">
+          <div key={section.title} className={`sidebar-section sidebar-section-${section.title.toLowerCase()}`}>
             <div className="sidebar-section-title">{section.title}</div>
             {section.items.map((item) => (
               <NavLink
@@ -69,20 +69,26 @@ const Sidebar = () => {
       {/* User section */}
       {user && (
         <div className="sidebar-user">
-          <NavLink to={`/profile/${user.username}`} className="sidebar-user-info">
+          <NavLink to={`/profile/${user.username}`} className="sidebar-user-info" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
             {user.avatar ? (
-              <img src={user.avatar} alt={user.firstName} className="avatar avatar-sm" />
+              <img src={user.avatar} alt={user.firstName} className="avatar avatar-sm" style={{ border: user.isPremium ? '2px solid #d946ef' : 'none', borderRadius: '50%', padding: user.isPremium ? '2px' : '0' }} />
             ) : (
-              <div className="avatar avatar-sm avatar-placeholder">
+              <div className="avatar avatar-sm avatar-placeholder" style={{ border: user.isPremium ? '2px solid #d946ef' : 'none', borderRadius: '50%' }}>
                 {user.firstName?.[0]}{user.lastName?.[0]}
               </div>
             )}
-            <div className="sidebar-user-details">
-              <span className="sidebar-user-name">{user.firstName} {user.lastName}</span>
-              <span className="sidebar-user-username">@{user.username}</span>
+            <div className="sidebar-user-details" style={{ display: 'flex', flexDirection: 'col', textAlign: 'left' }}>
+              <span className="sidebar-user-name" style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontWeight: 600, color: 'var(--text-primary)', fontSize: '14px' }}>
+                {user.firstName} {user.lastName}
+              </span>
+              <span className="sidebar-user-username" style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>@{user.username}</span>
+              <span className="sidebar-user-stats" style={{ fontSize: '10px', color: 'var(--text-tertiary)', marginTop: '2px', display: 'flex', gap: '8px' }}>
+                <span>🪙 {user.coins || 0}</span>
+                <span>★ {user.contributionScore || 0}</span>
+              </span>
             </div>
           </NavLink>
-          <NavLink to="/settings" className="sidebar-settings-btn">
+          <NavLink to="/settings" className="sidebar-settings-btn" style={{ marginLeft: 'auto' }}>
             <HiCog />
           </NavLink>
         </div>

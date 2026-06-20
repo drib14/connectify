@@ -1,6 +1,7 @@
 const Post = require('../models/Post');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
+const { createAndSendNotification } = require('../services/notificationService');
 
 // Create post
 const createPost = async (req, res) => {
@@ -148,7 +149,7 @@ const toggleLike = async (req, res) => {
     } else {
       post.likes.push(req.user._id);
       if (post.author.toString() !== req.user._id.toString()) {
-        await Notification.create({
+        await createAndSendNotification({
           recipient: post.author,
           sender: req.user._id,
           type: 'like',
@@ -182,7 +183,7 @@ const addComment = async (req, res) => {
     await post.save();
 
     if (post.author.toString() !== req.user._id.toString()) {
-      await Notification.create({
+      await createAndSendNotification({
         recipient: post.author,
         sender: req.user._id,
         type: 'comment',
@@ -291,7 +292,7 @@ const addCommentReply = async (req, res) => {
     await post.save();
 
     if (comment.author.toString() !== req.user._id.toString()) {
-      await Notification.create({
+      await createAndSendNotification({
         recipient: comment.author,
         sender: req.user._id,
         type: 'comment',
@@ -312,8 +313,117 @@ const addCommentReply = async (req, res) => {
   }
 };
 
+// Tip a post author
+const tipPost = async (req, res) => {
+  try {
+    const { amount } = req.body;
+    const tipAmount = parseInt(amount, 10);
+    if (isNaN(tipAmount) || tipAmount <= 0) {
+      return res.status(400).json({ message: 'Invalid tip amount.' });
+    }
+
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ message: 'Post not found.' });
+
+    const sender = await User.findById(req.user._id);
+    if (sender.coins < tipAmount) {
+      return res.status(400).json({ message: 'Insufficient Peace Coins balance.' });
+    }
+
+    if (post.author.toString() === req.user._id.toString()) {
+      return res.status(400).json({ message: 'You cannot tip your own post.' });
+    }
+
+    // Debit sender
+    sender.coins -= tipAmount;
+    sender.contributionScore = (sender.contributionScore || 0) + 5;
+    await sender.save();
+
+    // Credit receiver
+    await User.findByIdAndUpdate(
+      post.author,
+      { $inc: { coins: tipAmount, contributionScore: 10 } }
+    );
+
+    // Send notification
+    const { createAndSendNotification } = require('../services/notificationService');
+    await createAndSendNotification({
+      recipient: post.author,
+      sender: req.user._id,
+      type: 'tip',
+      message: `${req.user.firstName} tipped your post ${tipAmount} Peace Coins! 🪙`,
+      link: `/profile/${req.user.username}`,
+    });
+
+    res.json({
+      message: `Successfully tipped ${tipAmount} coins!`,
+      coins: sender.coins,
+      contributionScore: sender.contributionScore,
+    });
+  } catch (error) {
+    console.error('Tip post error:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+// Tip a comment author
+const tipComment = async (req, res) => {
+  try {
+    const { amount } = req.body;
+    const tipAmount = parseInt(amount, 10);
+    if (isNaN(tipAmount) || tipAmount <= 0) {
+      return res.status(400).json({ message: 'Invalid tip amount.' });
+    }
+
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ message: 'Post not found.' });
+
+    const comment = post.comments.id(req.params.commentId);
+    if (!comment) return res.status(404).json({ message: 'Comment not found.' });
+
+    const sender = await User.findById(req.user._id);
+    if (sender.coins < tipAmount) {
+      return res.status(400).json({ message: 'Insufficient Peace Coins balance.' });
+    }
+
+    if (comment.author.toString() === req.user._id.toString()) {
+      return res.status(400).json({ message: 'You cannot tip your own comment.' });
+    }
+
+    // Debit sender
+    sender.coins -= tipAmount;
+    sender.contributionScore = (sender.contributionScore || 0) + 5;
+    await sender.save();
+
+    // Credit receiver
+    await User.findByIdAndUpdate(
+      comment.author,
+      { $inc: { coins: tipAmount, contributionScore: 10 } }
+    );
+
+    // Send notification
+    const { createAndSendNotification } = require('../services/notificationService');
+    await createAndSendNotification({
+      recipient: comment.author,
+      sender: req.user._id,
+      type: 'tip',
+      message: `${req.user.firstName} tipped your comment ${tipAmount} Peace Coins! 🪙`,
+      link: `/profile/${req.user.username}`,
+    });
+
+    res.json({
+      message: `Successfully tipped ${tipAmount} coins!`,
+      coins: sender.coins,
+      contributionScore: sender.contributionScore,
+    });
+  } catch (error) {
+    console.error('Tip comment error:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
 module.exports = {
   createPost, getFeed, getPost, toggleLike, addComment,
   toggleBookmark, requestFactCheck, deletePost, getUserPosts,
-  addCommentReply,
+  addCommentReply, tipPost, tipComment,
 };

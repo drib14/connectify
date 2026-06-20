@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../services/api';
 import toast from 'react-hot-toast';
@@ -25,7 +26,8 @@ import {
   HiShieldCheck,
   HiPaperClip,
   HiX,
-  HiReply
+  HiReply,
+  HiPlus
 } from 'react-icons/hi';
 import {
   FaSmile,
@@ -92,7 +94,7 @@ const filterIcons = {
 };
 
 const Feed = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newPost, setNewPost] = useState({ content: '', postType: 'regular', visibility: 'public', moodTag: '', topics: '' });
@@ -114,9 +116,32 @@ const Feed = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadVisible, setUploadVisible] = useState(false);
 
+  // Tipping states
+  const [activeTipPostId, setActiveTipPostId] = useState(null);
+  const [activeTipCommentId, setActiveTipCommentId] = useState(null);
+
+  // Upcoming events
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
+
+  const getEventBadge = (event) => {
+    const now = new Date();
+    const eventDate = new Date(event.date);
+    const eventEndDate = event.endDate ? new Date(event.endDate) : null;
+
+    if (eventDate <= now && (!eventEndDate || eventEndDate >= now)) {
+      return { text: 'ONGOING', bg: 'rgba(34, 197, 94, 0.1)', color: '#22c55e', border: '1px solid rgba(34, 197, 94, 0.2)' };
+    } else {
+      return { text: 'UPCOMING', bg: 'rgba(14, 165, 233, 0.1)', color: '#0ea5e9', border: '1px solid rgba(14, 165, 233, 0.2)' };
+    }
+  };
+
   useEffect(() => {
     fetchPosts();
   }, [activeFilter, activeCircle]);
+
+  useEffect(() => {
+    fetchUpcomingEvents();
+  }, []);
 
   const fetchPosts = async () => {
     try {
@@ -129,6 +154,15 @@ const Feed = () => {
       toast.error('Failed to load feed.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUpcomingEvents = async () => {
+    try {
+      const { data } = await API.get('/events?upcoming=true');
+      setUpcomingEvents(data.slice(0, 5));
+    } catch (e) {
+      console.error('Failed to load upcoming events for feed.');
     }
   };
 
@@ -173,6 +207,7 @@ const Feed = () => {
       setSelectedFiles([]);
       setShowCreatePost(false);
       toast.success('Posted!');
+      refreshUser();
     } catch (e) {
       toast.error('Failed to create post.');
     } finally {
@@ -181,21 +216,21 @@ const Feed = () => {
       }, 600);
     }
   };
-
+ 
   const handleLike = async (postId) => {
     try {
       const { data } = await API.post(`/posts/${postId}/like`);
       setPosts(posts.map(p => p._id === postId ? { ...p, likes: data.likes } : p));
     } catch (e) {}
   };
-
+ 
   const handleBookmark = async (postId) => {
     try {
       await API.post(`/posts/${postId}/bookmark`);
       toast.success('Bookmarked!');
     } catch (e) {}
   };
-
+ 
   const handleDelete = async (postId) => {
     try {
       await API.delete(`/posts/${postId}`);
@@ -205,7 +240,7 @@ const Feed = () => {
       toast.error('Failed to delete.');
     }
   };
-
+ 
   const handleAddComment = async (postId) => {
     if (!commentContent.trim()) return;
     try {
@@ -213,11 +248,12 @@ const Feed = () => {
       setPosts(posts.map(p => p._id === postId ? { ...p, comments: data } : p));
       setCommentContent('');
       toast.success('Comment added!');
+      refreshUser();
     } catch (e) {
       toast.error('Failed to comment.');
     }
   };
-
+ 
   const handleAddReply = async (postId, commentId) => {
     if (!replyContent.trim()) return;
     try {
@@ -226,8 +262,31 @@ const Feed = () => {
       setReplyContent('');
       setReplyingToCommentId(null);
       toast.success('Reply added!');
+      refreshUser();
     } catch (e) {
       toast.error('Failed to reply.');
+    }
+  };
+
+  const handleTipPost = async (postId, amount) => {
+    try {
+      const { data } = await API.post(`/posts/${postId}/tip`, { amount });
+      toast.success(data.message);
+      setActiveTipPostId(null);
+      refreshUser();
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Failed to send tip.');
+    }
+  };
+
+  const handleTipComment = async (postId, commentId, amount) => {
+    try {
+      const { data } = await API.post(`/posts/${postId}/comments/${commentId}/tip`, { amount });
+      toast.success(data.message);
+      setActiveTipCommentId(null);
+      refreshUser();
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Failed to send tip.');
     }
   };
 
@@ -412,6 +471,66 @@ const Feed = () => {
         </div>
       </div>
 
+      {/* Upcoming Events Slider */}
+      {upcomingEvents.length > 0 && (
+        <div className="feed-upcoming-events animate-fade-in" style={{ marginBottom: 'var(--space-lg)', textAlign: 'left' }}>
+          <h3 className="heading-4" style={{ marginBottom: 'var(--space-sm)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <HiCalendar style={{ color: 'var(--primary)' }} /> Ongoing & Upcoming Events
+          </h3>
+          <div className="events-slider" style={{ display: 'flex', gap: 'var(--space-md)', overflowX: 'auto', paddingBottom: '10px', scrollbarWidth: 'thin' }}>
+            {upcomingEvents.map(event => {
+              const badge = getEventBadge(event);
+              return (
+                <div key={event._id} className="card event-slide-card" style={{ flex: '0 0 240px', padding: 0, overflow: 'hidden', margin: 0, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ height: '90px', background: event.coverImage ? `url(${event.coverImage}) center/cover no-repeat` : 'linear-gradient(135deg, var(--primary-dark), var(--secondary-dark))', position: 'relative' }}>
+                    <span className="badge badge-primary" style={{ position: 'absolute', top: 8, left: 8, fontSize: '9px', textTransform: 'uppercase', background: 'rgba(0,212,170,0.85)' }}>{event.type}</span>
+                  </div>
+                  <div style={{ padding: '10px 12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: 2 }}>
+                      <strong style={{ flex: 1, fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-primary)', margin: 0 }}>{event.title}</strong>
+                      <span style={{
+                        fontSize: '8px',
+                        fontWeight: 700,
+                        padding: '1px 4px',
+                        borderRadius: '3px',
+                        background: badge.bg,
+                        color: badge.color,
+                        border: badge.border,
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {badge.text}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', display: 'block', marginTop: '2px' }}>
+                      {new Date(event.date).toLocaleDateString('en', { month: 'short', day: 'numeric' })} at {new Date(event.date).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px' }}>
+                      <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>{event.attendees?.length || 0} attending</span>
+                      <button
+                        className="btn btn-primary btn-xs"
+                        style={{ padding: '2px 8px', fontSize: '10px', marginLeft: 'auto' }}
+                        onClick={async () => {
+                          try {
+                            await API.post(`/events/${event._id}/attend`, { status: 'going' });
+                            toast.success("RSVP'd!");
+                            fetchUpcomingEvents();
+                            refreshUser();
+                          } catch (e) {
+                            toast.error('Failed to RSVP');
+                          }
+                        }}
+                      >
+                        RSVP
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Posts */}
       {loading ? (
         <SkeletonLoader type="feed" count={3} />
@@ -538,7 +657,7 @@ const Feed = () => {
                 )}
 
                 {/* Post Engagement */}
-                <div className="post-engagement">
+                <div className="post-engagement" style={{ position: 'relative' }}>
                   <button
                     className={`post-engagement-btn ${post.likes?.includes(user?._id) ? 'liked' : ''}`}
                     onClick={() => handleLike(post._id)}
@@ -548,6 +667,24 @@ const Feed = () => {
                   <button className={`post-engagement-btn ${isCommentsOpen ? 'active' : ''}`} onClick={() => setOpenCommentsPostId(isCommentsOpen ? null : post._id)}>
                     <HiChat /> <span>{post.comments?.length || 0}</span>
                   </button>
+                  
+                  {post.author?._id !== user?._id && (
+                    <button className={`post-engagement-btn ${activeTipPostId === post._id ? 'active' : ''}`} onClick={() => setActiveTipPostId(activeTipPostId === post._id ? null : post._id)}>
+                      <span>🪙 Tip</span>
+                    </button>
+                  )}
+
+                  {activeTipPostId === post._id && (
+                    <div className="tip-popover animate-fade-in" style={{ position: 'absolute', left: '140px', bottom: '40px', background: '#131930', border: '1px solid rgba(255,255,255,0.1)', padding: '6px 10px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', zIndex: 100 }}>
+                      <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Tip:</span>
+                      {[5, 10, 20, 50].map(amt => (
+                        <button key={amt} className="btn btn-primary btn-xs" style={{ padding: '2px 6px', fontSize: '10px' }} onClick={() => handleTipPost(post._id, amt)}>
+                          {amt}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
                   <button className="post-engagement-btn" onClick={() => handleBookmark(post._id)}>
                     <HiBookmark />
                   </button>
@@ -607,13 +744,35 @@ const Feed = () => {
                                   </span>
                                 </div>
                               </div>
-                              <button
-                                className="btn btn-ghost btn-sm"
-                                style={{ padding: '2px 6px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                                onClick={() => setReplyingToCommentId(replyingToCommentId === comment._id ? null : comment._id)}
-                              >
-                                <HiReply /> Reply
-                              </button>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                {comment.author?._id !== user?._id && (
+                                  <>
+                                    <button
+                                      className="btn btn-ghost btn-sm"
+                                      style={{ padding: '2px 6px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                      onClick={() => setActiveTipCommentId(activeTipCommentId === comment._id ? null : comment._id)}
+                                    >
+                                      <span>🪙 Tip</span>
+                                    </button>
+                                    {activeTipCommentId === comment._id && (
+                                      <div className="tip-popover animate-fade-in" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#131930', border: '1px solid rgba(255,255,255,0.1)', padding: '2px 4px', borderRadius: '4px' }}>
+                                        {[5, 10, 20].map(amt => (
+                                          <button key={amt} className="btn btn-primary btn-xs" style={{ padding: '1px 4px', fontSize: '9px', minWidth: 'auto' }} onClick={() => handleTipComment(post._id, comment._id, amt)}>
+                                            {amt}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+                                <button
+                                  className="btn btn-ghost btn-sm"
+                                  style={{ padding: '2px 6px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                  onClick={() => setReplyingToCommentId(replyingToCommentId === comment._id ? null : comment._id)}
+                                >
+                                  <HiReply /> Reply
+                                </button>
+                              </div>
                             </div>
                             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '0 0 6px 28px' }}>{comment.content}</p>
 

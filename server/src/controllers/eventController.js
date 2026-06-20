@@ -30,6 +30,7 @@ const createEvent = async (req, res) => {
     if (req.files?.eventMedia) event.coverImage = req.files.eventMedia[0]?.path;
 
     await event.save();
+    await User.findByIdAndUpdate(req.user._id, { $inc: { contributionScore: 10 } });
     res.status(201).json(event);
   } catch (error) {
     console.error('Create event error:', error);
@@ -43,7 +44,19 @@ const getEvents = async (req, res) => {
     const query = {};
 
     if (type && type !== 'all') query.type = type;
-    if (upcoming === 'true') query.date = { $gte: new Date() };
+    
+    const now = new Date();
+    if (upcoming === 'true') {
+      query.$or = [
+        { date: { $gte: now } },
+        { endDate: { $gte: now }, date: { $lte: now } }
+      ];
+    } else if (upcoming === 'false') {
+      query.$and = [
+        { date: { $lt: now } },
+        { $or: [{ endDate: { $exists: false } }, { endDate: { $lt: now } }] }
+      ];
+    }
 
     if (lat && lng) {
       query['location'] = {
@@ -85,6 +98,7 @@ const attendEvent = async (req, res) => {
     if (!event) return res.status(404).json({ message: 'Event not found.' });
 
     const existingIdx = event.attendees.findIndex(a => a.user.toString() === req.user._id.toString());
+    const isNewRSVP = existingIdx === -1;
     if (existingIdx >= 0) {
       event.attendees[existingIdx].status = status || 'going';
     } else {
@@ -95,6 +109,9 @@ const attendEvent = async (req, res) => {
     }
 
     await event.save();
+    if (isNewRSVP) {
+      await User.findByIdAndUpdate(req.user._id, { $inc: { contributionScore: 5 } });
+    }
     res.json(event);
   } catch (error) {
     res.status(500).json({ message: 'Server error.' });

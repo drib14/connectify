@@ -93,6 +93,10 @@ const userSchema = new mongoose.Schema({
   followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 
+  // Monetization
+  coins: { type: Number, default: 0 },
+  isPremium: { type: Boolean, default: false },
+
   // Auth & Terms
   agreedToTerms: { type: Boolean, default: false },
   termsAgreedAt: { type: Date },

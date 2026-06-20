@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HiUser, HiCog, HiHeart, HiLogout, HiArrowRight } from 'react-icons/hi';
+import { HiUser, HiCog, HiHeart, HiLogout, HiArrowRight, HiCreditCard } from 'react-icons/hi';
 import { FaUserSecret, FaBrain, FaUserShield } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import ConfirmModal from '../../components/UI/ConfirmModal';
@@ -22,6 +22,13 @@ const Settings = () => {
       icon: HiUser,
       path: '/settings/profile',
       color: '#0ea5e9',
+    },
+    {
+      title: 'Subscription & Wallet',
+      description: 'Upgrade to Premium, buy Peace Coins, view balance, and configure Paymongo billing.',
+      icon: HiCreditCard,
+      path: '/settings/subscription',
+      color: '#d946ef',
     },
     {
       title: 'Wellbeing & Limits',

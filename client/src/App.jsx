@@ -30,6 +30,8 @@ import WellbeingSettings from './pages/Settings/WellbeingSettings';
 import PrivacySettings from './pages/Settings/PrivacySettings';
 import LegacySettings from './pages/Settings/LegacySettings';
 import DisposableSettings from './pages/Settings/DisposableSettings';
+import SubscriptionSettings from './pages/Settings/SubscriptionSettings';
+import MockCheckout from './pages/Auth/MockCheckout';
 
 import SplashScreen from './components/UI/SplashScreen';
 
@@ -68,13 +70,17 @@ const AppRoutes = () => {
         <Route path="questions" element={<Questions />} />
         <Route path="journal" element={<Journal />} />
         <Route path="notifications" element={<Notifications />} />
+        <Route path="notifications/:filter" element={<Notifications />} />
         <Route path="settings" element={<Settings />} />
         <Route path="settings/profile" element={<ProfileSettings />} />
         <Route path="settings/wellbeing" element={<WellbeingSettings />} />
         <Route path="settings/privacy" element={<PrivacySettings />} />
         <Route path="settings/legacy" element={<LegacySettings />} />
         <Route path="settings/disposable" element={<DisposableSettings />} />
+        <Route path="settings/subscription" element={<SubscriptionSettings />} />
       </Route>
+
+      <Route path="/mock-checkout" element={<MockCheckout />} />
 
       {/* Catch all */}
       <Route path="*" element={<Navigate to="/feed" />} />

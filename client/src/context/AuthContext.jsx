@@ -65,8 +65,21 @@ export const AuthProvider = ({ children }) => {
     });
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    try {
+      const { data } = await API.get('/auth/me');
+      setUser(data);
+      localStorage.setItem('user', JSON.stringify(data));
+      return data;
+    } catch (e) {
+      if (e.response?.status === 401) {
+        logout();
+      }
+    }
+  }, [logout]);
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser, refreshUser, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );

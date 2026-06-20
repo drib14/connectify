@@ -7,7 +7,7 @@ const {
   requestAccountabilityPartner, respondAccountabilityRequest,
   updateDigitalLegacy, getPrivacyDashboard,
   searchUsers, getSuggestedUsers, createDisposableProfile,
-  updateUsageTime,
+  updateUsageTime, createPaymentCheckout, verifyPayment,
 } = require('../controllers/userController');
 
 const router = express.Router();
@@ -30,5 +30,7 @@ router.post('/accountability/respond', auth, respondAccountabilityRequest);
 router.put('/digital-legacy', auth, updateDigitalLegacy);
 router.post('/disposable-profile', auth, createDisposableProfile);
 router.post('/usage-time', auth, updateUsageTime);
+router.post('/checkout', auth, createPaymentCheckout);
+router.post('/verify-payment', auth, verifyPayment);
 
 module.exports = router;

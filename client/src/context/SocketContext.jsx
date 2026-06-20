@@ -1,17 +1,21 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext';
+import toast from 'react-hot-toast';
 
 const SocketContext = createContext(null);
 
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState([]);
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
 
   useEffect(() => {
     if (user) {
-      const newSocket = io('/', { transports: ['websocket', 'polling'] });
+      const socketUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://localhost:5000'
+        : '/';
+      const newSocket = io(socketUrl, { transports: ['websocket', 'polling'] });
       
       newSocket.on('connect', () => {
         newSocket.emit('user_online', user._id);
@@ -21,13 +25,27 @@ export const SocketProvider = ({ children }) => {
         setOnlineUsers(users);
       });
 
+      newSocket.on('new_notification', (notification) => {
+        toast(notification.message, {
+          icon: notification.type === 'tip' ? '🪙' : '✨',
+          duration: 5000,
+        });
+
+        // Automatically sync points/coins
+        if (notification.type === 'tip' || notification.type === 'badgeEarned') {
+          refreshUser();
+        }
+
+        window.dispatchEvent(new CustomEvent('new_notification', { detail: notification }));
+      });
+
       setSocket(newSocket);
 
       return () => {
         newSocket.disconnect();
       };
     }
-  }, [user]);
+  }, [user, refreshUser]);
 
   return (
     <SocketContext.Provider value={{ socket, onlineUsers }}>

@@ -13,7 +13,8 @@ import {
   HiCode,
   HiPhotograph,
   HiDocumentText,
-  HiInbox
+  HiInbox,
+  HiCamera
 } from 'react-icons/hi';
 import { FaAward, FaTrophy, FaStar } from 'react-icons/fa';
 import { formatDistanceToNow } from 'date-fns';
@@ -22,13 +23,51 @@ import './Profile.css';
 
 const Profile = () => {
   const { username } = useParams();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, updateUser } = useAuth();
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   const [activeTab, setActiveTab] = useState('posts');
   const [loading, setLoading] = useState(true);
 
   const isOwnProfile = currentUser?.username === username;
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    const toastId = toast.loading('Uploading avatar...');
+    try {
+      const { data } = await API.put('/users/profile', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setProfile(prev => ({ ...prev, avatar: data.avatar }));
+      updateUser({ avatar: data.avatar });
+      toast.success('Avatar updated!', { id: toastId });
+    } catch (err) {
+      toast.error('Failed to upload avatar.', { id: toastId });
+    }
+  };
+
+  const handleCoverChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('coverPhoto', file);
+
+    const toastId = toast.loading('Uploading cover photo...');
+    try {
+      const { data } = await API.put('/users/profile', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setProfile(prev => ({ ...prev, coverPhoto: data.coverPhoto }));
+      updateUser({ coverPhoto: data.coverPhoto });
+      toast.success('Cover photo updated!', { id: toastId });
+    } catch (err) {
+      toast.error('Failed to upload cover photo.', { id: toastId });
+    }
+  };
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -87,20 +126,39 @@ const Profile = () => {
     <div className="profile-page">
       {/* Cover & Avatar */}
       <div className="profile-cover">
-        {profile.coverPhoto && <img src={profile.coverPhoto} alt="Cover" className="profile-cover-img" />}
+        {profile.coverPhoto ? (
+          <img src={profile.coverPhoto} alt="Cover" className="profile-cover-img" />
+        ) : (
+          <div className="profile-cover-placeholder" style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, var(--primary-dark), var(--secondary-dark))' }}></div>
+        )}
         <div className="profile-cover-overlay"></div>
+        {isOwnProfile && (
+          <label className="profile-cover-edit-btn" style={{ position: 'absolute', right: '16px', top: '16px', zIndex: 5, background: 'rgba(0,0,0,0.6)', padding: '6px 12px', borderRadius: '20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', transition: 'background 0.2s' }}>
+            <HiPhotograph /> Change Cover
+            <input type="file" accept="image/*" onChange={handleCoverChange} style={{ display: 'none' }} />
+          </label>
+        )}
       </div>
 
       <div className="profile-info-section">
-        <div className="profile-avatar-wrapper">
-          {profile.avatar ? (
-            <img src={profile.avatar} alt={profile.firstName} className="avatar avatar-3xl profile-avatar" />
-          ) : (
-            <div className="avatar avatar-3xl avatar-placeholder profile-avatar" style={{ fontSize: '2.5rem' }}>
-              {profile.firstName?.[0]}
-              {profile.lastName?.[0]}
-            </div>
-          )}
+        <div className="profile-avatar-wrapper" style={{ position: 'relative' }}>
+          <div className="profile-avatar-container" style={{ position: 'relative', borderRadius: '50%', overflow: 'hidden', border: profile.isPremium ? '4px solid #d946ef' : '4px solid var(--bg-primary)', display: 'inline-block' }}>
+            {profile.avatar ? (
+              <img src={profile.avatar} alt={profile.firstName} className="avatar avatar-3xl profile-avatar" style={{ border: 'none' }} />
+            ) : (
+              <div className="avatar avatar-3xl avatar-placeholder profile-avatar" style={{ fontSize: '2.5rem', border: 'none' }}>
+                {profile.firstName?.[0]}
+                {profile.lastName?.[0]}
+              </div>
+            )}
+            {isOwnProfile && (
+              <label className="profile-avatar-edit-overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#fff', opacity: 0, transition: 'opacity 0.2s', cursor: 'pointer' }}>
+                <HiCamera style={{ fontSize: '24px' }} />
+                <span style={{ fontSize: '10px', marginTop: '4px' }}>Edit</span>
+                <input type="file" accept="image/*" onChange={handleAvatarChange} style={{ display: 'none' }} />
+              </label>
+            )}
+          </div>
         </div>
 
         <div className="profile-info">
