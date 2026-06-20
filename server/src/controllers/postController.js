@@ -101,6 +101,7 @@ const getFeed = async (req, res) => {
     const posts = await Post.find(query)
       .populate('author', 'firstName lastName username avatar contributionScore authenticityBadges likeFreeModeEnabled')
       .populate('comments.author', 'firstName lastName username avatar')
+      .populate('comments.replies.author', 'firstName lastName username avatar')
       .sort(sortOption)
       .skip(skip)
       .limit(parseInt(limit));
@@ -192,7 +193,8 @@ const addComment = async (req, res) => {
     }
 
     const updatedPost = await Post.findById(post._id)
-      .populate('comments.author', 'firstName lastName username avatar');
+      .populate('comments.author', 'firstName lastName username avatar')
+      .populate('comments.replies.author', 'firstName lastName username avatar');
 
     res.json(updatedPost.comments);
   } catch (error) {
@@ -270,7 +272,48 @@ const getUserPosts = async (req, res) => {
   }
 };
 
+// Add reply to a comment (Feature Commenting upgrade)
+const addCommentReply = async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ message: 'Post not found.' });
+
+    const comment = post.comments.id(req.params.commentId);
+    if (!comment) return res.status(404).json({ message: 'Comment not found.' });
+
+    const reply = {
+      author: req.user._id,
+      content: req.body.content,
+      isAnonymous: req.body.isAnonymous || false,
+    };
+
+    comment.replies.push(reply);
+    await post.save();
+
+    if (comment.author.toString() !== req.user._id.toString()) {
+      await Notification.create({
+        recipient: comment.author,
+        sender: req.user._id,
+        type: 'comment',
+        message: `${req.user.firstName} replied to your comment.`,
+        link: `/post/${post._id}`,
+      });
+      await User.findByIdAndUpdate(req.user._id, { $inc: { contributionScore: 2, constructiveFeedbackScore: 1 } });
+    }
+
+    const updatedPost = await Post.findById(post._id)
+      .populate('comments.author', 'firstName lastName username avatar')
+      .populate('comments.replies.author', 'firstName lastName username avatar');
+
+    res.json(updatedPost.comments);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
 module.exports = {
   createPost, getFeed, getPost, toggleLike, addComment,
   toggleBookmark, requestFactCheck, deletePost, getUserPosts,
+  addCommentReply,
 };

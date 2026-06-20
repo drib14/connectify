@@ -25,16 +25,23 @@ import Journal from './pages/Journal/Journal';
 import Notifications from './pages/Notifications/Notifications';
 import Settings from './pages/Settings/Settings';
 import Explore from './pages/Explore/Explore';
+import ProfileSettings from './pages/Settings/ProfileSettings';
+import WellbeingSettings from './pages/Settings/WellbeingSettings';
+import PrivacySettings from './pages/Settings/PrivacySettings';
+import LegacySettings from './pages/Settings/LegacySettings';
+import DisposableSettings from './pages/Settings/DisposableSettings';
+
+import SplashScreen from './components/UI/SplashScreen';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
-  if (loading) return <div className="loader"><div className="spinner spinner-lg"></div></div>;
+  if (loading) return <SplashScreen />;
   return isAuthenticated ? children : <Navigate to="/login" />;
 };
 
 const PublicRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
-  if (loading) return <div className="loader"><div className="spinner spinner-lg"></div></div>;
+  if (loading) return <SplashScreen />;
   return !isAuthenticated ? children : <Navigate to="/feed" />;
 };
 
@@ -62,6 +69,11 @@ const AppRoutes = () => {
         <Route path="journal" element={<Journal />} />
         <Route path="notifications" element={<Notifications />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="settings/profile" element={<ProfileSettings />} />
+        <Route path="settings/wellbeing" element={<WellbeingSettings />} />
+        <Route path="settings/privacy" element={<PrivacySettings />} />
+        <Route path="settings/legacy" element={<LegacySettings />} />
+        <Route path="settings/disposable" element={<DisposableSettings />} />
       </Route>
 
       {/* Catch all */}

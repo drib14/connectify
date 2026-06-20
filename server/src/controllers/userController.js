@@ -28,7 +28,7 @@ const getProfile = async (req, res) => {
 // Update profile
 const updateProfile = async (req, res) => {
   try {
-    const allowedUpdates = ['firstName', 'lastName', 'bio', 'location', 'website', 'skills', 'likeFreeModeEnabled', 'slowFeedEnabled', 'feedRefreshLimit', 'currentMood', 'followingTopics'];
+    const allowedUpdates = ['firstName', 'lastName', 'bio', 'location', 'website', 'skills', 'likeFreeModeEnabled', 'slowFeedEnabled', 'feedRefreshLimit', 'currentMood', 'followingTopics', 'socialBurnoutSettings'];
     const updates = {};
     
     for (const key of allowedUpdates) {
@@ -206,14 +206,38 @@ const respondAccountabilityRequest = async (req, res) => {
 const updateDigitalLegacy = async (req, res) => {
   try {
     const { action, trustedContact, message } = req.body;
-    const user = await User.findByIdAndUpdate(
-      req.user._id,
-      { digitalLegacy: { enabled: true, action, trustedContact, message } },
-      { new: true }
-    ).select('digitalLegacy');
+    let targetContactId = null;
 
-    res.json(user.digitalLegacy);
+    if (trustedContact) {
+      const contactUser = await User.findOne({
+        $or: [
+          { email: trustedContact.toLowerCase().trim() },
+          { username: trustedContact.trim() }
+        ]
+      });
+      if (!contactUser) {
+        return res.status(400).json({ message: 'No registered user found with that email or username.' });
+      }
+      targetContactId = contactUser._id;
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        digitalLegacy: {
+          enabled: !!targetContactId,
+          action,
+          trustedContact: targetContactId,
+          message
+        }
+      },
+      { new: true }
+    ).select('digitalLegacy')
+      .populate('digitalLegacy.trustedContact', 'firstName lastName username email avatar');
+
+    res.json(updatedUser.digitalLegacy);
   } catch (error) {
+    console.error('Update legacy error:', error);
     res.status(500).json({ message: 'Server error.' });
   }
 };
@@ -222,7 +246,8 @@ const updateDigitalLegacy = async (req, res) => {
 const getPrivacyDashboard = async (req, res) => {
   try {
     const user = await User.findById(req.user._id)
-      .select('trustCircles disposableProfiles digitalLegacy likeFreeModeEnabled slowFeedEnabled socialBurnoutSettings');
+      .select('trustCircles disposableProfiles digitalLegacy likeFreeModeEnabled slowFeedEnabled socialBurnoutSettings')
+      .populate('digitalLegacy.trustedContact', 'firstName lastName username email avatar');
     
     const postsByVisibility = await Post.aggregate([
       { $match: { author: user._id } },

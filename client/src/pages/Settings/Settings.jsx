@@ -1,77 +1,121 @@
 import { useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import API from '../../services/api';
-import toast from 'react-hot-toast';
-import { HiLogout } from 'react-icons/hi';
 import { useNavigate } from 'react-router-dom';
+import { HiUser, HiCog, HiHeart, HiLogout, HiArrowRight } from 'react-icons/hi';
+import { FaUserSecret, FaBrain, FaUserShield } from 'react-icons/fa';
+import { useAuth } from '../../context/AuthContext';
+import ConfirmModal from '../../components/UI/ConfirmModal';
 
 const Settings = () => {
-  const { user, updateUser, logout } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({
-    firstName: user?.firstName || '', lastName: user?.lastName || '', bio: user?.bio || '',
-    location: user?.location || '', website: user?.website || '',
-    likeFreeModeEnabled: user?.likeFreeModeEnabled || false,
-    slowFeedEnabled: user?.slowFeedEnabled || false,
-    feedRefreshLimit: user?.feedRefreshLimit || 20,
-  });
-  const [saving, setSaving] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const { data } = await API.put('/users/profile', form);
-      updateUser(data);
-      toast.success('Settings saved!');
-    } catch (e) { toast.error('Failed to save.'); }
-    finally { setSaving(false); }
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
   };
 
-  const handleLogout = async () => { await logout(); navigate('/login'); };
+  const cards = [
+    {
+      title: 'Profile Settings',
+      description: 'Update your display names, biography details, website link, cover photo, and avatar.',
+      icon: HiUser,
+      path: '/settings/profile',
+      color: '#0ea5e9',
+    },
+    {
+      title: 'Wellbeing & Limits',
+      description: 'Toggle Like-Free mode, configure Slow Feed scrolling limits, and daily usage warnings.',
+      icon: FaBrain,
+      path: '/settings/wellbeing',
+      color: '#a855f7',
+    },
+    {
+      title: 'Privacy Dashboard',
+      description: 'Review visibility stats, who sees your posts, and configure trust circle sizes.',
+      icon: FaUserShield,
+      path: '/settings/privacy',
+      color: '#00d4aa',
+    },
+    {
+      title: 'Digital Legacy',
+      description: 'Designate legatee email contacts and instructions in case of passing.',
+      icon: HiHeart,
+      path: '/settings/legacy',
+      color: '#ef4444',
+    },
+    {
+      title: 'Disposable Profiles',
+      description: 'Generate temporary alias profiles for individual community postings.',
+      icon: FaUserSecret,
+      path: '/settings/disposable',
+      color: '#f59e0b',
+    },
+  ];
 
   return (
-    <div style={{ maxWidth: 600, margin: '0 auto' }}>
-      <h1 className="heading-2" style={{ marginBottom: 'var(--space-lg)' }}>⚙️ Settings</h1>
+    <div style={{ maxWidth: 800, margin: '0 auto' }}>
+      <ConfirmModal
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={handleLogout}
+        title="Confirm Log Out"
+        message="Are you sure you want to log out of Connectify?"
+        confirmText="Log Out"
+      />
 
-      {/* Profile Settings */}
-      <div className="card" style={{ marginBottom: 'var(--space-md)' }}>
-        <h3 className="heading-4" style={{ marginBottom: 'var(--space-md)' }}>Profile</h3>
-        <div className="flex flex-col gap-md">
-          <div className="flex gap-sm">
-            <div className="form-group flex-1"><label className="form-label">First Name</label><input className="form-input" value={form.firstName} onChange={e => setForm({ ...form, firstName: e.target.value })} /></div>
-            <div className="form-group flex-1"><label className="form-label">Last Name</label><input className="form-input" value={form.lastName} onChange={e => setForm({ ...form, lastName: e.target.value })} /></div>
-          </div>
-          <div className="form-group"><label className="form-label">Bio</label><textarea className="form-input form-textarea" value={form.bio} onChange={e => setForm({ ...form, bio: e.target.value })} rows={3} /></div>
-          <div className="form-group"><label className="form-label">Location</label><input className="form-input" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} /></div>
-          <div className="form-group"><label className="form-label">Website</label><input className="form-input" value={form.website} onChange={e => setForm({ ...form, website: e.target.value })} /></div>
-        </div>
-      </div>
+      <h1 className="heading-2" style={{ marginBottom: 'var(--space-lg)', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+        <HiCog /> Settings Portal
+      </h1>
 
-      {/* Mental Health Settings */}
-      <div className="card" style={{ marginBottom: 'var(--space-md)' }}>
-        <h3 className="heading-4" style={{ marginBottom: 'var(--space-md)' }}>🧠 Wellbeing Settings</h3>
-        <div className="flex flex-col gap-md">
-          <div className="flex items-center justify-between">
-            <div><div style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Like-Free Mode</div><div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>Hide like counts on all posts</div></div>
-            <label className="toggle"><input type="checkbox" checked={form.likeFreeModeEnabled} onChange={e => setForm({ ...form, likeFreeModeEnabled: e.target.checked })} /><span className="toggle-slider"></span></label>
-          </div>
-          <div className="divider"></div>
-          <div className="flex items-center justify-between">
-            <div><div style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Slow Feed</div><div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>Limit feed refreshes to reduce doomscrolling</div></div>
-            <label className="toggle"><input type="checkbox" checked={form.slowFeedEnabled} onChange={e => setForm({ ...form, slowFeedEnabled: e.target.checked })} /><span className="toggle-slider"></span></label>
-          </div>
-          {form.slowFeedEnabled && (
-            <div className="form-group">
-              <label className="form-label">Max feed refreshes per session</label>
-              <input type="number" className="form-input" value={form.feedRefreshLimit} onChange={e => setForm({ ...form, feedRefreshLimit: parseInt(e.target.value) })} min={5} max={100} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+        {cards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <div
+              key={card.title}
+              className="card card-interactive"
+              onClick={() => navigate(card.path)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: 'var(--space-md) var(--space-lg)',
+                cursor: 'pointer'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                <div
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: 'var(--radius-md)',
+                    background: 'rgba(255,255,255,0.03)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '24px',
+                    color: card.color,
+                    border: '1px solid rgba(255,255,255,0.05)'
+                  }}
+                >
+                  <Icon />
+                </div>
+                <div style={{ textAlign: 'left' }}>
+                  <h3 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 4px' }}>{card.title}</h3>
+                  <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0 }}>{card.description}</p>
+                </div>
+              </div>
+              <HiArrowRight style={{ color: 'var(--text-tertiary)' }} />
             </div>
-          )}
-        </div>
+          );
+        })}
       </div>
 
-      <div className="flex items-center justify-between">
-        <button className="btn btn-primary" onClick={handleSave} disabled={saving}>{saving ? <span className="spinner spinner-sm"></span> : 'Save Changes'}</button>
-        <button className="btn btn-danger" onClick={handleLogout}><HiLogout /> Log Out</button>
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '24px', textAlign: 'center' }}>
+        <button className="btn btn-danger" onClick={() => setShowLogoutConfirm(true)} style={{ minWidth: '150px' }}>
+          <HiLogout /> Log Out
+        </button>
       </div>
     </div>
   );

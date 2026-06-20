@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { HiSearch, HiBell, HiPlus, HiLogout, HiUser, HiCog } from 'react-icons/hi';
 import API from '../../services/api';
+import ConfirmModal from '../UI/ConfirmModal';
 import './Header.css';
 
 const Header = () => {
@@ -13,6 +14,7 @@ const Header = () => {
   const [showSearch, setShowSearch] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const searchRef = useRef(null);
   const menuRef = useRef(null);
 
@@ -51,7 +53,11 @@ const Header = () => {
     }
   };
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const performLogout = async () => {
     await logout();
     navigate('/login');
   };
@@ -128,13 +134,22 @@ const Header = () => {
                 <HiCog /> Settings
               </Link>
               <div className="dropdown-divider"></div>
-              <button className="dropdown-item dropdown-item-danger" onClick={handleLogout}>
+              <button className="dropdown-item dropdown-item-danger" onClick={() => { setShowUserMenu(false); handleLogout(); }}>
                 <HiLogout /> Log out
               </button>
             </div>
           )}
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={performLogout}
+        title="Confirm Log Out"
+        message="Are you sure you want to log out of Connectify?"
+        confirmText="Log Out"
+      />
     </header>
   );
 };

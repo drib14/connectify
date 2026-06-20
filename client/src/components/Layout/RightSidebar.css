@@ -1,0 +1,177 @@
+.right-sidebar {
+  width: var(--right-sidebar-width, 320px);
+  position: fixed;
+  top: var(--header-height);
+  right: 0;
+  height: calc(100vh - var(--header-height));
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  overflow-y: auto;
+  border-left: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.widget-card {
+  padding: var(--space-md) !important;
+}
+
+.widget-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #f1f5f9;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 0;
+  margin-bottom: var(--space-md);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: var(--space-sm);
+}
+
+/* Affirmation widget */
+.affirmation-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  font-style: italic;
+  margin: 0 0 16px;
+  min-height: 40px;
+}
+
+/* Breathing Widget */
+.breathing-widget {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 8px 0;
+}
+
+.breathing-circle {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0, 212, 170, 0.15) 0%, rgba(14, 165, 233, 0.05) 100%);
+  border: 1px solid rgba(0, 212, 170, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.5s ease;
+  box-shadow: 0 0 15px rgba(0, 212, 170, 0.05);
+}
+
+.breathing-circle:hover {
+  border-color: rgba(0, 212, 170, 0.6);
+  box-shadow: 0 0 20px rgba(0, 212, 170, 0.15);
+}
+
+.breathing-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #00d4aa;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  pointer-events: none;
+}
+
+/* Breathing Animation States */
+.breathing-circle.state-in {
+  transform: scale(1.35);
+  background: radial-gradient(circle, rgba(0, 212, 170, 0.35) 0%, rgba(14, 165, 233, 0.15) 100%);
+  border-color: rgba(0, 212, 170, 0.8);
+  box-shadow: 0 0 35px rgba(0, 212, 170, 0.3);
+}
+
+.breathing-circle.state-hold {
+  transform: scale(1.35);
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.35) 0%, rgba(168, 85, 247, 0.15) 100%);
+  border-color: rgba(14, 165, 233, 0.8);
+  box-shadow: 0 0 35px rgba(14, 165, 233, 0.3);
+  animation: pulseHold 4s infinite linear;
+}
+
+.breathing-circle.state-out {
+  transform: scale(1);
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.15) 0%, rgba(14, 165, 233, 0.05) 100%);
+  border-color: rgba(239, 68, 68, 0.4);
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.1);
+}
+
+@keyframes pulseHold {
+  0%, 100% {
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Suggested users list */
+.suggested-users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.suggested-user-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.user-info-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  text-decoration: none;
+  color: inherit;
+  flex: 1;
+  min-width: 0;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-handle {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.widget-loading {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-md) 0;
+}
+
+.widget-footer {
+  margin-top: auto;
+  text-align: center;
+  padding: var(--space-sm) 0;
+}
+
+.widget-footer p {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  margin: 4px 0 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+@media (max-width: 1024px) {
+  .right-sidebar {
+    display: none;
+  }
+}

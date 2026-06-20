@@ -2,14 +2,14 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../services/api';
 import toast from 'react-hot-toast';
-import { HiHeart, HiUsers, HiBriefcase, HiAcademicCap, HiPlus, HiX, HiSearch } from 'react-icons/hi';
+import { HiHeart, HiUsers, HiBriefcase, HiAcademicCap, HiPlus, HiX, HiSearch, HiShieldCheck } from 'react-icons/hi';
 import './TrustCircles.css';
 
 const circles = [
-  { key: 'family', label: 'Family', icon: HiHeart, color: '#ef4444', emoji: '❤️' },
-  { key: 'friends', label: 'Friends', icon: HiUsers, color: '#0ea5e9', emoji: '👥' },
-  { key: 'coworkers', label: 'Coworkers', icon: HiBriefcase, color: '#f59e0b', emoji: '💼' },
-  { key: 'classmates', label: 'Classmates', icon: HiAcademicCap, color: '#a855f7', emoji: '🎓' },
+  { key: 'family', label: 'Family', icon: HiHeart, color: '#ef4444' },
+  { key: 'friends', label: 'Friends', icon: HiUsers, color: '#0ea5e9' },
+  { key: 'coworkers', label: 'Coworkers', icon: HiBriefcase, color: '#f59e0b' },
+  { key: 'classmates', label: 'Classmates', icon: HiAcademicCap, color: '#a855f7' },
 ];
 
 const TrustCircles = () => {
@@ -61,32 +61,41 @@ const TrustCircles = () => {
 
   const activeMembers = trustCircles[activeCircle] || [];
   const activeCircleInfo = circles.find(c => c.key === activeCircle);
+  const ActiveCircleIcon = activeCircleInfo?.icon || HiUsers;
 
   return (
     <div className="trust-circles-page">
       <div className="page-header">
-        <h1 className="heading-2">🔒 Trust Circles</h1>
+        <h1 className="heading-2" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+          <HiShieldCheck /> Trust Circles
+        </h1>
         <p className="text-secondary" style={{ fontSize: 'var(--text-sm)' }}>Control who sees your content. Share with the right people.</p>
       </div>
 
       <div className="tc-grid">
         {/* Circle Selector */}
         <div className="tc-selector">
-          {circles.map(c => (
-            <button key={c.key} className={`tc-circle-btn ${activeCircle === c.key ? 'active' : ''}`} onClick={() => setActiveCircle(c.key)} style={{ '--circle-color': c.color }}>
-              <div className="tc-circle-icon">{c.emoji}</div>
-              <div className="tc-circle-info">
-                <span className="tc-circle-label">{c.label}</span>
-                <span className="tc-circle-count">{(trustCircles[c.key] || []).length} members</span>
-              </div>
-            </button>
-          ))}
+          {circles.map(c => {
+            const CircleIcon = c.icon;
+            return (
+              <button key={c.key} className={`tc-circle-btn ${activeCircle === c.key ? 'active' : ''}`} onClick={() => setActiveCircle(c.key)} style={{ '--circle-color': c.color }}>
+                <div className="tc-circle-icon" style={{ display: 'inline-flex', color: c.color }}><CircleIcon /></div>
+                <div className="tc-circle-info">
+                  <span className="tc-circle-label">{c.label}</span>
+                  <span className="tc-circle-count">{(trustCircles[c.key] || []).length} members</span>
+                </div>
+              </button>
+            );
+          })}
         </div>
 
         {/* Circle Members */}
         <div className="tc-members-panel">
-          <div className="tc-members-header">
-            <h3 className="heading-4">{activeCircleInfo?.emoji} {activeCircleInfo?.label} Circle</h3>
+          <div className="tc-members-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'between' }}>
+            <h3 className="heading-4" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+              <span style={{ display: 'inline-flex', color: activeCircleInfo?.color }}><ActiveCircleIcon /></span>
+              <span>{activeCircleInfo?.label} Circle</span>
+            </h3>
             <span className="badge badge-primary">{activeMembers.length} members</span>
           </div>
 
@@ -113,7 +122,11 @@ const TrustCircles = () => {
           {/* Members List */}
           <div className="tc-members-list">
             {activeMembers.length === 0 ? (
-              <div className="empty-state" style={{ padding: 'var(--space-xl)' }}><div className="empty-state-icon">👋</div><div className="empty-state-title">No members yet</div><div className="empty-state-text">Search and add people to your {activeCircleInfo?.label} circle.</div></div>
+              <div className="empty-state" style={{ padding: 'var(--space-xl)' }}>
+                <div className="empty-state-icon" style={{ display: 'inline-flex' }}><HiUsers /></div>
+                <div className="empty-state-title">No members yet</div>
+                <div className="empty-state-text">Search and add people to your {activeCircleInfo?.label} circle.</div>
+              </div>
             ) : (
               activeMembers.map(m => (
                 <div key={m._id} className="tc-member">

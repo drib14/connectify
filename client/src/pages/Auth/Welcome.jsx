@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { HiLockClosed, HiFlag, HiGlobeAlt, HiLightBulb, HiBookOpen, HiSearch, HiSparkles } from 'react-icons/hi';
 import './Auth.css';
 
 const confettiColors = ['#00d4aa', '#0ea5e9', '#a855f7', '#f59e0b', '#ef4444', '#22c55e', '#ec4899'];
@@ -11,12 +12,12 @@ const Welcome = () => {
   const [confettiPieces, setConfettiPieces] = useState([]);
 
   const features = useMemo(() => [
-    { icon: '🔒', title: 'Trust Circles', desc: 'Control who sees what', link: '/trust-circles' },
-    { icon: '🎯', title: 'Set Goals', desc: 'Track your progress', link: '/goals' },
-    { icon: '🌍', title: 'Communities', desc: 'Find your people', link: '/communities' },
-    { icon: '💡', title: 'Skill Showcase', desc: 'Show your talents', link: `/profile/${user?.username}` },
-    { icon: '📝', title: 'Journal', desc: 'Reflect & grow', link: '/journal' },
-    { icon: '🤝', title: 'Explore', desc: 'Discover content', link: '/explore' },
+    { icon: HiLockClosed, title: 'Trust Circles', desc: 'Control who sees what', link: '/trust-circles' },
+    { icon: HiFlag, title: 'Set Goals', desc: 'Track your progress', link: '/goals' },
+    { icon: HiGlobeAlt, title: 'Communities', desc: 'Find your people', link: '/communities' },
+    { icon: HiLightBulb, title: 'Skill Showcase', desc: 'Show your talents', link: `/profile/${user?.username}` },
+    { icon: HiBookOpen, title: 'Journal', desc: 'Reflect & grow', link: '/journal' },
+    { icon: HiSearch, title: 'Explore', desc: 'Discover content', link: '/explore' },
   ], [user?.username]);
 
   useEffect(() => {
@@ -55,7 +56,9 @@ const Welcome = () => {
       </div>
 
       <div className="welcome-container animate-fade-in-up">
-        <div className="welcome-emoji">🎉</div>
+        <div className="welcome-emoji" style={{ display: 'flex', justifyContent: 'center', color: 'var(--primary)', marginBottom: 'var(--space-md)' }}>
+          <HiSparkles style={{ fontSize: '64px' }} />
+        </div>
         
         <h1 className="welcome-title">
           Welcome to <span className="text-gradient">Connectify</span>,{' '}
@@ -77,7 +80,9 @@ const Welcome = () => {
               className="welcome-feature"
               onClick={() => navigate(feature.link)}
             >
-              <div className="welcome-feature-icon">{feature.icon}</div>
+              <div className="welcome-feature-icon">
+                <feature.icon />
+              </div>
               <div className="welcome-feature-title">{feature.title}</div>
               <div className="welcome-feature-desc">{feature.desc}</div>
             </div>

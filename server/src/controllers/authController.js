@@ -185,7 +185,8 @@ const getMe = async (req, res) => {
       .populate('trustCircles.friends', 'firstName lastName username avatar')
       .populate('trustCircles.coworkers', 'firstName lastName username avatar')
       .populate('trustCircles.classmates', 'firstName lastName username avatar')
-      .populate('accountabilityPartner', 'firstName lastName username avatar');
+      .populate('accountabilityPartner', 'firstName lastName username avatar')
+      .populate('digitalLegacy.trustedContact', 'firstName lastName username email avatar');
 
     res.json(user);
   } catch (error) {

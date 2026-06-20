@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
+import { HiEye, HiEyeOff } from 'react-icons/hi';
 import './Auth.css';
 
 const Login = () => {
@@ -23,7 +24,7 @@ const Login = () => {
     setLoading(true);
     try {
       await login(formData.emailOrUsername, formData.password);
-      toast.success('Welcome back! 🎉');
+      toast.success('Welcome back!');
       navigate('/feed');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Login failed.');
@@ -79,8 +80,9 @@ const Login = () => {
                 type="button"
                 className="password-toggle"
                 onClick={() => setShowPassword(!showPassword)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
-                {showPassword ? '🙈' : '👁️'}
+                {showPassword ? <HiEyeOff style={{ fontSize: '18px' }} /> : <HiEye style={{ fontSize: '18px' }} />}
               </button>
             </div>
           </div>

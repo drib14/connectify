@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
+import { HiEye, HiEyeOff, HiUsers, HiLockClosed, HiBan, HiCheckCircle } from 'react-icons/hi';
+import { FaLeaf } from 'react-icons/fa';
 import './Auth.css';
 
 const Register = () => {
@@ -69,7 +71,7 @@ const Register = () => {
     setLoading(true);
     try {
       await register({ ...formData, agreedToTerms: 'true' });
-      toast.success('Account created! 🎉');
+      toast.success('Account created!');
       navigate('/welcome');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Registration failed.');
@@ -152,8 +154,8 @@ const Register = () => {
                 <label className="form-label" htmlFor="reg-password">Password</label>
                 <div className="password-wrapper">
                   <input type={showPassword ? 'text' : 'password'} id="reg-password" name="password" className={`form-input ${errors.password ? 'error' : ''}`} placeholder="Min. 6 characters" value={formData.password} onChange={handleChange} autoComplete="new-password" />
-                  <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)}>
-                    {showPassword ? '🙈' : '👁️'}
+                  <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {showPassword ? <HiEyeOff style={{ fontSize: '18px' }} /> : <HiEye style={{ fontSize: '18px' }} />}
                   </button>
                 </div>
                 {errors.password && <span className="form-error">{errors.password}</span>}
@@ -187,12 +189,12 @@ const Register = () => {
                 <h3>Terms of Service</h3>
                 <div className="terms-preview-content">
                   <p>By creating a Connectify account, you agree to our community guidelines:</p>
-                  <ul>
-                    <li>🤝 Be respectful and authentic in all interactions</li>
-                    <li>🔒 We protect your privacy and data</li>
-                    <li>🚫 No harassment, hate speech, or harmful content</li>
-                    <li>✅ Content you share is your responsibility</li>
-                    <li>🌱 Help build a positive, growth-oriented community</li>
+                  <ul style={{ listStyle: 'none', paddingLeft: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><HiUsers style={{ color: 'var(--primary)' }} /> Be respectful and authentic in all interactions</li>
+                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><HiLockClosed style={{ color: 'var(--success)' }} /> We protect your privacy and data</li>
+                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><HiBan style={{ color: 'var(--error)' }} /> No harassment, hate speech, or harmful content</li>
+                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><HiCheckCircle style={{ color: 'var(--info)' }} /> Content you share is your responsibility</li>
+                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><FaLeaf style={{ color: 'var(--success)' }} /> Help build a positive, growth-oriented community</li>
                   </ul>
                   <Link to="/terms" target="_blank" className="auth-link">Read full Terms of Service →</Link>
                 </div>
@@ -210,7 +212,7 @@ const Register = () => {
               <div className="form-row">
                 <button type="button" className="btn btn-ghost btn-lg" onClick={prevStep}>← Back</button>
                 <button type="submit" className="btn btn-primary btn-lg flex-1" disabled={loading} id="register-submit">
-                  {loading ? <span className="spinner spinner-sm"></span> : 'Create Account 🚀'}
+                  {loading ? <span className="spinner spinner-sm"></span> : 'Create Account'}
                 </button>
               </div>
             </div>

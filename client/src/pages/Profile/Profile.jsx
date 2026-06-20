@@ -3,8 +3,21 @@ import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../services/api';
 import toast from 'react-hot-toast';
-import { HiUserAdd, HiUserRemove, HiLocationMarker, HiLink, HiBadgeCheck, HiStar, HiCode, HiPhotograph } from 'react-icons/hi';
+import {
+  HiUserAdd,
+  HiUserRemove,
+  HiLocationMarker,
+  HiLink,
+  HiBadgeCheck,
+  HiStar,
+  HiCode,
+  HiPhotograph,
+  HiDocumentText,
+  HiInbox
+} from 'react-icons/hi';
+import { FaAward, FaTrophy, FaStar } from 'react-icons/fa';
 import { formatDistanceToNow } from 'date-fns';
+import SkeletonLoader from '../../components/UI/SkeletonLoader';
 import './Profile.css';
 
 const Profile = () => {
@@ -26,8 +39,11 @@ const Profile = () => {
         ]);
         setProfile(profileRes.data);
         setPosts(postsRes.data);
-      } catch (e) { toast.error('Profile not found.'); }
-      finally { setLoading(false); }
+      } catch (e) {
+        toast.error('Profile not found.');
+      } finally {
+        setLoading(false);
+      }
     };
     fetchProfile();
   }, [username]);
@@ -41,11 +57,29 @@ const Profile = () => {
         followers: data.following ? [...(prev.followers || []), currentUser._id] : (prev.followers || []).filter(id => id !== currentUser._id),
       }));
       toast.success(data.following ? 'Following!' : 'Unfollowed.');
-    } catch (e) { toast.error('Failed.'); }
+    } catch (e) {
+      toast.error('Failed.');
+    }
   };
 
-  if (loading) return <div className="loader"><div className="spinner spinner-lg"></div></div>;
-  if (!profile) return <div className="empty-state"><div className="empty-state-title">User not found</div></div>;
+  if (loading) {
+    return (
+      <div className="profile-page">
+        <SkeletonLoader type="profile" />
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="empty-state">
+        <div className="empty-state-icon">
+          <HiInbox />
+        </div>
+        <div className="empty-state-title">User not found</div>
+      </div>
+    );
+  }
 
   const isFollowing = profile.followers?.includes(currentUser?._id);
 
@@ -62,7 +96,10 @@ const Profile = () => {
           {profile.avatar ? (
             <img src={profile.avatar} alt={profile.firstName} className="avatar avatar-3xl profile-avatar" />
           ) : (
-            <div className="avatar avatar-3xl avatar-placeholder profile-avatar" style={{ fontSize: '2.5rem' }}>{profile.firstName?.[0]}{profile.lastName?.[0]}</div>
+            <div className="avatar avatar-3xl avatar-placeholder profile-avatar" style={{ fontSize: '2.5rem' }}>
+              {profile.firstName?.[0]}
+              {profile.lastName?.[0]}
+            </div>
           )}
         </div>
 
@@ -75,9 +112,19 @@ const Profile = () => {
           {profile.bio && <p className="profile-bio">{profile.bio}</p>}
 
           <div className="profile-meta">
-            {profile.location && <span><HiLocationMarker /> {profile.location}</span>}
-            {profile.website && <a href={profile.website} target="_blank" rel="noopener noreferrer"><HiLink /> Website</a>}
-            <span><HiStar style={{ color: 'var(--warm)' }} /> {profile.contributionScore} Contribution Score</span>
+            {profile.location && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                <HiLocationMarker /> {profile.location}
+              </span>
+            )}
+            {profile.website && (
+              <a href={profile.website} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                <HiLink /> Website
+              </a>
+            )}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+              <HiStar style={{ color: 'var(--warm)' }} /> {profile.contributionScore} Contribution Score
+            </span>
           </div>
 
           <div className="profile-stats">
@@ -107,7 +154,7 @@ const Profile = () => {
       {/* Skill Showcase */}
       {profile.skillShowcase?.length > 0 && (
         <div className="profile-showcase">
-          <h3 className="heading-4"><HiCode /> Skill Showcase</h3>
+          <h3 className="heading-4" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><HiCode /> Skill Showcase</h3>
           <div className="profile-showcase-grid">
             {profile.skillShowcase.map((item, i) => (
               <div key={i} className="card card-interactive showcase-card">
@@ -125,20 +172,33 @@ const Profile = () => {
       {/* Tabs & Posts */}
       <div className="profile-content">
         <div className="tabs">
-          <button className={`tab ${activeTab === 'posts' ? 'active' : ''}`} onClick={() => setActiveTab('posts')}>Posts</button>
-          <button className={`tab ${activeTab === 'showcase' ? 'active' : ''}`} onClick={() => setActiveTab('showcase')}>Showcase</button>
-          <button className={`tab ${activeTab === 'badges' ? 'active' : ''}`} onClick={() => setActiveTab('badges')}>Badges</button>
+          <button className={`tab ${activeTab === 'posts' ? 'active' : ''}`} onClick={() => setActiveTab('posts')}>
+            Posts
+          </button>
+          <button className={`tab ${activeTab === 'showcase' ? 'active' : ''}`} onClick={() => setActiveTab('showcase')}>
+            Showcase
+          </button>
+          <button className={`tab ${activeTab === 'badges' ? 'active' : ''}`} onClick={() => setActiveTab('badges')}>
+            Badges
+          </button>
         </div>
 
         {activeTab === 'posts' && (
           <div className="feed-posts" style={{ marginTop: 'var(--space-lg)' }}>
             {posts.length === 0 ? (
-              <div className="empty-state"><div className="empty-state-icon">📝</div><div className="empty-state-title">No posts yet</div></div>
+              <div className="empty-state">
+                <div className="empty-state-icon">
+                  <HiDocumentText />
+                </div>
+                <div className="empty-state-title">No posts yet</div>
+              </div>
             ) : (
               posts.map(post => (
                 <div key={post._id} className="card post-card">
                   <p style={{ fontSize: 'var(--text-sm)', lineHeight: 1.7 }}>{post.content}</p>
-                  <div className="post-meta" style={{ marginTop: 'var(--space-sm)' }}>{formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })} · ❤️ {post.likes?.length || 0} · 💬 {post.comments?.length || 0}</div>
+                  <div className="post-meta" style={{ marginTop: 'var(--space-sm)' }}>
+                    {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })} · <HiStar style={{ color: 'var(--warm)', display: 'inline', verticalAlign: 'text-top' }} /> {post.likes?.length || 0} · <HiInbox style={{ display: 'inline', verticalAlign: 'text-top' }} /> {post.comments?.length || 0}
+                  </div>
                 </div>
               ))
             )}
@@ -147,10 +207,24 @@ const Profile = () => {
 
         {activeTab === 'badges' && (
           <div className="profile-badges-grid" style={{ marginTop: 'var(--space-lg)' }}>
-            {profile.authenticityBadges?.length > 0 ? profile.authenticityBadges.map((b, i) => (
-              <div key={i} className="card badge-card"><span className="badge-icon">{b.icon || '🏆'}</span><strong>{b.name}</strong><span>{b.description}</span></div>
-            )) : (
-              <div className="empty-state"><div className="empty-state-icon">🏆</div><div className="empty-state-title">No badges yet</div><div className="empty-state-text">Earn badges through authentic participation!</div></div>
+            {profile.authenticityBadges?.length > 0 ? (
+              profile.authenticityBadges.map((b, i) => (
+                <div key={i} className="card badge-card">
+                  <span className="badge-icon">
+                    <FaAward />
+                  </span>
+                  <strong>{b.name}</strong>
+                  <span>{b.description}</span>
+                </div>
+              ))
+            ) : (
+              <div className="empty-state">
+                <div className="empty-state-icon">
+                  <FaTrophy />
+                </div>
+                <div className="empty-state-title">No badges yet</div>
+                <div className="empty-state-text">Earn badges through authentic participation!</div>
+              </div>
             )}
           </div>
         )}
