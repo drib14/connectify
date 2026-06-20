@@ -1,32 +1,26 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
-const NotificationSchema = new mongoose.Schema(
-  {
-    recipient: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-    },
-    sender: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-    },
-    type: {
-      type: String,
-      enum: ['like', 'comment', 'circle_request', 'circle_accept', 'share'],
-      required: true,
-    },
-    post: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Post',
-    },
-    isRead: {
-      type: Boolean,
-      default: false,
-    },
+const notificationSchema = new mongoose.Schema({
+  recipient: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  type: {
+    type: String,
+    enum: [
+      'like', 'comment', 'follow', 'mention', 'share',
+      'trustCircleAdd', 'goalUpdate', 'accountabilityCheckIn',
+      'challengeInvite', 'communityInvite', 'eventReminder',
+      'crisisAlert', 'factCheckResult', 'badgeEarned',
+      'timeCapsuleUnlocked', 'burnoutWarning', 'partnerRequest',
+      'volunteerMatch', 'projectInvite', 'welcome',
+    ],
+    required: true,
   },
-  { timestamps: true }
-);
+  message: { type: String, required: true },
+  link: String,
+  read: { type: Boolean, default: false },
+  metadata: { type: mongoose.Schema.Types.Mixed },
+}, { timestamps: true });
 
-export default mongoose.model('Notification', NotificationSchema);
+notificationSchema.index({ recipient: 1, read: 1, createdAt: -1 });
+
+module.exports = mongoose.model('Notification', notificationSchema);

@@ -1,0 +1,27 @@
+.trust-circles-page { max-width: 900px; margin: 0 auto; }
+.page-header { margin-bottom: var(--space-xl); }
+
+.tc-grid { display: grid; grid-template-columns: 260px 1fr; gap: var(--space-lg); }
+.tc-selector { display: flex; flex-direction: column; gap: var(--space-xs); }
+.tc-circle-btn { display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-md); background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); cursor: pointer; transition: all var(--transition-base); text-align: left; }
+.tc-circle-btn:hover { border-color: var(--border-light); background: var(--bg-card-hover); }
+.tc-circle-btn.active { border-color: var(--circle-color); background: rgba(255,255,255,0.04); box-shadow: 0 0 15px rgba(0,0,0,0.2); }
+.tc-circle-icon { font-size: 24px; }
+.tc-circle-info { display: flex; flex-direction: column; }
+.tc-circle-label { font-weight: 600; font-size: var(--text-sm); }
+.tc-circle-count { font-size: var(--text-xs); color: var(--text-tertiary); }
+
+.tc-members-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: var(--space-lg); }
+.tc-members-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-md); }
+
+.tc-search { position: relative; margin-bottom: var(--space-md); }
+.tc-search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-tertiary); pointer-events: none; }
+.tc-search-results { display: flex; flex-direction: column; gap: var(--space-xs); margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--bg-tertiary); border-radius: var(--radius-md); }
+.tc-search-result { display: flex; align-items: center; justify-content: space-between; padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-md); }
+.tc-search-result:hover { background: rgba(255,255,255,0.04); }
+
+.tc-members-list { display: flex; flex-direction: column; gap: var(--space-xs); }
+.tc-member { display: flex; align-items: center; justify-content: space-between; padding: var(--space-sm); border-radius: var(--radius-md); transition: background var(--transition-fast); }
+.tc-member:hover { background: rgba(255,255,255,0.04); }
+
+@media (max-width: 768px) { .tc-grid { grid-template-columns: 1fr; } .tc-selector { flex-direction: row; overflow-x: auto; } }

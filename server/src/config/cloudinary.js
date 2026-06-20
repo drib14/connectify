@@ -1,4 +1,4 @@
-import { v2 as cloudinary } from 'cloudinary';
+const cloudinary = require('cloudinary').v2;
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -6,17 +6,4 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-export const uploadToCloudinary = (fileBuffer, resourceType = 'auto') => {
-  return new Promise((resolve, reject) => {
-    const uploadStream = cloudinary.uploader.upload_stream(
-      { resource_type: resourceType, folder: 'connectify' },
-      (error, result) => {
-        if (error) return reject(error);
-        resolve(result);
-      }
-    );
-    uploadStream.end(fileBuffer);
-  });
-};
-
-export default cloudinary;
+module.exports = cloudinary;

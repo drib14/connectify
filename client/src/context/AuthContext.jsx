@@ -1,89 +1,79 @@
-import React, { createContext, useState, useEffect } from 'react';
-import API from '../services/api.js';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import API from '../services/api';
 
-export const AuthContext = createContext();
+const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem('user');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchMe = async () => {
-      const token = sessionStorage.getItem('token') || localStorage.getItem('token');
-      if (token) {
-        try {
-          const response = await API.get('/auth/me');
-          setUser(response.data);
-        } catch (error) {
-          console.error('Failed to load profile:', error.message);
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      API.get('/auth/me')
+        .then(({ data }) => {
+          setUser(data);
+          localStorage.setItem('user', JSON.stringify(data));
+        })
+        .catch(() => {
           logout();
-        }
-      }
+        })
+        .finally(() => setLoading(false));
+    } else {
       setLoading(false);
-    };
-    fetchMe();
+    }
   }, []);
 
-  const login = async (email, password, rememberMe = false) => {
-    setLoading(true);
+  const login = useCallback(async (emailOrUsername, password) => {
+    const { data } = await API.post('/auth/login', { emailOrUsername, password });
+    localStorage.setItem('accessToken', data.accessToken);
+    localStorage.setItem('refreshToken', data.refreshToken);
+    localStorage.setItem('user', JSON.stringify(data.user));
+    setUser(data.user);
+    return data;
+  }, []);
+
+  const register = useCallback(async (formData) => {
+    const { data } = await API.post('/auth/register', formData);
+    localStorage.setItem('accessToken', data.accessToken);
+    localStorage.setItem('refreshToken', data.refreshToken);
+    localStorage.setItem('user', JSON.stringify(data.user));
+    setUser(data.user);
+    return data;
+  }, []);
+
+  const logout = useCallback(async () => {
     try {
-      const response = await API.post('/auth/login', { email, password });
-      const { token, refreshToken, ...userData } = response.data;
-      
-      if (rememberMe) {
-        localStorage.setItem('token', token);
-        localStorage.setItem('refreshToken', refreshToken);
-      } else {
-        sessionStorage.setItem('token', token);
-        sessionStorage.setItem('refreshToken', refreshToken);
-      }
-
-      setUser(userData);
-      return userData;
-    } catch (error) {
-      throw error.response?.data?.message || 'Login failed';
-    } finally {
-      setLoading(false);
+      await API.post('/auth/logout');
+    } catch (e) {
+      // Silent fail
     }
-  };
-
-  const register = async (registerData) => {
-    setLoading(true);
-    try {
-      const response = await API.post('/auth/register', registerData);
-      const { token, refreshToken, ...userData } = response.data;
-      
-      sessionStorage.setItem('token', token);
-      sessionStorage.setItem('refreshToken', refreshToken);
-      
-      setUser(userData);
-      return userData;
-    } catch (error) {
-      throw error.response?.data?.message || 'Registration failed';
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const logout = () => {
-    sessionStorage.clear();
-    localStorage.clear();
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
     setUser(null);
-  };
+  }, []);
 
-  const updateProfile = async (profileData) => {
-    try {
-      const response = await API.put('/users/canvas', profileData);
-      setUser((prev) => ({ ...prev, ...response.data }));
-      return response.data;
-    } catch (error) {
-      throw error.response?.data?.message || 'Profile update failed';
-    }
-  };
+  const updateUser = useCallback((updates) => {
+    setUser(prev => {
+      const updated = { ...prev, ...updates };
+      localStorage.setItem('user', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ user, setUser, loading, login, register, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
+  return context;
 };

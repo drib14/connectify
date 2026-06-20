@@ -1,52 +1,46 @@
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: '/api',
+  headers: { 'Content-Type': 'application/json' },
 });
 
-// Automatically inject JWT Token
+// Request interceptor - attach access token
 API.interceptors.request.use((config) => {
-  const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+  const token = localStorage.getItem('accessToken');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
-}, (error) => {
-  return Promise.reject(error);
 });
 
-// Axios response interceptor for refreshing token
+// Response interceptor - handle token refresh
 API.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    if (error.response?.status === 401 && !originalRequest._retry) {
+
+    if (error.response?.status === 401 && error.response?.data?.expired && !originalRequest._retry) {
       originalRequest._retry = true;
+
       try {
-        const refToken = sessionStorage.getItem('refreshToken') || localStorage.getItem('refreshToken');
-        if (!refToken) return Promise.reject(error);
+        const refreshToken = localStorage.getItem('refreshToken');
+        const { data } = await axios.post('/api/auth/refresh', { refreshToken });
 
-        const response = await axios.post('http://localhost:5000/api/auth/refresh', {
-          refreshToken: refToken,
-        });
+        localStorage.setItem('accessToken', data.accessToken);
+        localStorage.setItem('refreshToken', data.refreshToken);
 
-        const { token } = response.data;
-        if (sessionStorage.getItem('token')) {
-          sessionStorage.setItem('token', token);
-        } else {
-          localStorage.setItem('token', token);
-        }
-
-        originalRequest.headers.Authorization = `Bearer ${token}`;
+        originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
         return API(originalRequest);
-      } catch (err) {
-        // Clear auth details if refresh token is expired or invalid
-        sessionStorage.clear();
-        localStorage.clear();
+      } catch (refreshError) {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
         window.location.href = '/login';
-        return Promise.reject(err);
+        return Promise.reject(refreshError);
       }
     }
+
     return Promise.reject(error);
   }
 );

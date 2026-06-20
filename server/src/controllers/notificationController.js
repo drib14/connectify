@@ -1,77 +1,50 @@
-import Notification from '../models/Notification.js';
+const Notification = require('../models/Notification');
 
-export const createNotificationAndEmit = async (req, { recipient, type, post }) => {
+const getNotifications = async (req, res) => {
   try {
-    // Avoid notifying yourself
-    if (req.user._id.toString() === recipient.toString()) return;
+    const { page = 1, limit = 30, unreadOnly } = req.query;
+    const query = { recipient: req.user._id };
+    if (unreadOnly === 'true') query.read = false;
 
-    const notification = await Notification.create({
-      recipient,
-      sender: req.user._id,
-      type,
-      post: post || null,
-    });
-
-    const populated = await Notification.findById(notification._id)
-      .populate('sender', 'username avatar isPremium')
-      .populate('post', 'content');
-
-    const io = req.app.get('socketio');
-    if (io) {
-      io.to(recipient.toString()).emit('notification_received', populated);
-    }
-  } catch (error) {
-    console.error('Create Notification Error:', error.message);
-  }
-};
-
-export const getNotifications = async (req, res) => {
-  try {
-    const notifications = await Notification.find({ recipient: req.user._id })
-      .populate('sender', 'username avatar isPremium')
-      .populate('post', 'content')
+    const notifications = await Notification.find(query)
+      .populate('sender', 'firstName lastName username avatar')
       .sort({ createdAt: -1 })
-      .limit(30);
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit));
 
-    res.json(notifications);
+    const unreadCount = await Notification.countDocuments({ recipient: req.user._id, read: false });
+
+    res.json({ notifications, unreadCount });
   } catch (error) {
-    console.error('Get Notifications Error:', error.message);
-    res.status(500).json({ message: 'Failed to retrieve notifications' });
+    res.status(500).json({ message: 'Server error.' });
   }
 };
 
-export const markAsRead = async (req, res) => {
+const markAsRead = async (req, res) => {
   try {
-    const { id } = req.params;
-    const notification = await Notification.findById(id);
-
-    if (!notification) {
-      return res.status(404).json({ message: 'Notification not found' });
-    }
-
-    if (notification.recipient.toString() !== req.user._id.toString()) {
-      return res.status(401).json({ message: 'Unauthorized action' });
-    }
-
-    notification.isRead = true;
-    await notification.save();
-
-    res.json(notification);
+    await Notification.findByIdAndUpdate(req.params.id, { read: true });
+    res.json({ message: 'Marked as read.' });
   } catch (error) {
-    console.error('Mark Notification Read Error:', error.message);
-    res.status(500).json({ message: 'Failed to update notification' });
+    res.status(500).json({ message: 'Server error.' });
   }
 };
 
-export const markAllAsRead = async (req, res) => {
+const markAllAsRead = async (req, res) => {
   try {
-    await Notification.updateMany(
-      { recipient: req.user._id, isRead: false },
-      { $set: { isRead: true } }
-    );
-    res.json({ message: 'All notifications marked as read' });
+    await Notification.updateMany({ recipient: req.user._id, read: false }, { read: true });
+    res.json({ message: 'All notifications marked as read.' });
   } catch (error) {
-    console.error('Mark All Read Error:', error.message);
-    res.status(500).json({ message: 'Failed to update notifications' });
+    res.status(500).json({ message: 'Server error.' });
   }
 };
+
+const deleteNotification = async (req, res) => {
+  try {
+    await Notification.findOneAndDelete({ _id: req.params.id, recipient: req.user._id });
+    res.json({ message: 'Notification deleted.' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+module.exports = { getNotifications, markAsRead, markAllAsRead, deleteNotification };

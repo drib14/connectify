@@ -1,38 +1,31 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
-import { AuthContext } from './AuthContext.jsx';
+import { useAuth } from './AuthContext';
 
-export const SocketContext = createContext();
+const SocketContext = createContext(null);
 
 export const SocketProvider = ({ children }) => {
-  const { user } = useContext(AuthContext);
   const [socket, setSocket] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState([]);
+  const { user } = useAuth();
 
   useEffect(() => {
     if (user) {
-      const socketConn = io('http://localhost:5000');
+      const newSocket = io('/', { transports: ['websocket', 'polling'] });
       
-      socketConn.emit('setup', user);
-      
-      socketConn.on('connected', () => {
-        console.log('Socket successfully connected to server');
+      newSocket.on('connect', () => {
+        newSocket.emit('user_online', user._id);
       });
 
-      socketConn.on('online_users', (users) => {
+      newSocket.on('online_users', (users) => {
         setOnlineUsers(users);
       });
 
-      setSocket(socketConn);
+      setSocket(newSocket);
 
       return () => {
-        socketConn.disconnect();
+        newSocket.disconnect();
       };
-    } else {
-      if (socket) {
-        socket.disconnect();
-        setSocket(null);
-      }
     }
   }, [user]);
 
@@ -41,4 +34,10 @@ export const SocketProvider = ({ children }) => {
       {children}
     </SocketContext.Provider>
   );
+};
+
+export const useSocket = () => {
+  const context = useContext(SocketContext);
+  if (!context) throw new Error('useSocket must be used within SocketProvider');
+  return context;
 };

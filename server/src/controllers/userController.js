@@ -1,208 +1,360 @@
-import User from '../models/User.js';
-import { createNotificationAndEmit } from './notificationController.js';
+const User = require('../models/User');
+const Post = require('../models/Post');
+const Notification = require('../models/Notification');
 
-// CANVAS PROFILE ACTIONS
-export const updateCanvas = async (req, res) => {
+// Get user profile
+const getProfile = async (req, res) => {
   try {
-    const { bio, avatar, banner, vibeSong } = req.body;
-    const user = await User.findById(req.user._id);
+    const user = await User.findOne({ username: req.params.username })
+      .select('-password -refreshToken -verificationToken')
+      .populate('trustCircles.family', 'firstName lastName username avatar')
+      .populate('trustCircles.friends', 'firstName lastName username avatar')
+      .populate('trustCircles.coworkers', 'firstName lastName username avatar')
+      .populate('trustCircles.classmates', 'firstName lastName username avatar')
+      .populate('accountabilityPartner', 'firstName lastName username avatar');
 
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+    
+    const postCount = await Post.countDocuments({ author: user._id, isAnonymous: false });
+    const followerCount = user.followers?.length || 0;
+    const followingCount = user.following?.length || 0;
 
-    if (bio !== undefined) user.bio = bio;
-    if (avatar !== undefined) user.avatar = avatar;
-    if (banner !== undefined) user.banner = banner;
-    if (vibeSong !== undefined) user.vibeSong = vibeSong;
-
-    const updatedUser = await user.save();
-    res.json({
-      _id: updatedUser._id,
-      username: updatedUser.username,
-      email: updatedUser.email,
-      avatar: updatedUser.avatar,
-      banner: updatedUser.banner,
-      bio: updatedUser.bio,
-      vibeSong: updatedUser.vibeSong,
-      isPremium: updatedUser.isPremium,
-    });
+    res.json({ ...user.toJSON(), postCount, followerCount, followingCount });
   } catch (error) {
-    console.error('Update Canvas Error:', error.message);
-    res.status(500).json({ message: 'Failed to update Canvas profile' });
+    res.status(500).json({ message: 'Server error.' });
   }
 };
 
-export const getUserCanvas = async (req, res) => {
+// Update profile
+const updateProfile = async (req, res) => {
   try {
-    const { username } = req.params;
-    const user = await User.findOne({ username })
-      .select('-password')
-      .populate('circle', 'username avatar isPremium');
+    const allowedUpdates = ['firstName', 'lastName', 'bio', 'location', 'website', 'skills', 'likeFreeModeEnabled', 'slowFeedEnabled', 'feedRefreshLimit', 'currentMood', 'followingTopics'];
+    const updates = {};
     
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    for (const key of allowedUpdates) {
+      if (req.body[key] !== undefined) updates[key] = req.body[key];
     }
+
+    if (req.files?.avatar) updates.avatar = req.files.avatar[0].path;
+    if (req.files?.coverPhoto) updates.coverPhoto = req.files.coverPhoto[0].path;
+
+    const user = await User.findByIdAndUpdate(req.user._id, updates, { new: true })
+      .select('-password -refreshToken');
+
     res.json(user);
   } catch (error) {
-    console.error('Get Canvas Error:', error.message);
-    res.status(500).json({ message: 'Failed to load Canvas profile' });
+    res.status(500).json({ message: 'Server error.' });
   }
 };
 
-// CIRCLE (FRIENDS) ACTIONS
-export const sendCircleRequest = async (req, res) => {
+// Update trust circles
+const updateTrustCircles = async (req, res) => {
   try {
-    const { targetUserId } = req.body;
-    const senderId = req.user._id;
-
-    if (senderId.toString() === targetUserId) {
-      return res.status(400).json({ message: 'Cannot add yourself to your circle' });
+    const { circle, userId, action } = req.body;
+    const validCircles = ['family', 'friends', 'coworkers', 'classmates'];
+    
+    if (!validCircles.includes(circle)) {
+      return res.status(400).json({ message: 'Invalid trust circle.' });
     }
 
-    const targetUser = await User.findById(targetUserId);
-    if (!targetUser) {
-      return res.status(404).json({ message: 'Target user not found' });
+    const update = action === 'add'
+      ? { $addToSet: { [`trustCircles.${circle}`]: userId } }
+      : { $pull: { [`trustCircles.${circle}`]: userId } };
+
+    const user = await User.findByIdAndUpdate(req.user._id, update, { new: true })
+      .select('-password -refreshToken')
+      .populate(`trustCircles.${circle}`, 'firstName lastName username avatar');
+
+    if (action === 'add') {
+      await Notification.create({
+        recipient: userId,
+        sender: req.user._id,
+        type: 'trustCircleAdd',
+        message: `${req.user.firstName} added you to their ${circle} circle.`,
+        link: `/profile/${req.user.username}`,
+      });
     }
 
-    // Check if already in circle or request pending
-    if (targetUser.circle.includes(senderId)) {
-      return res.status(400).json({ message: 'User is already in your Circle' });
-    }
-    if (targetUser.circleRequests.includes(senderId)) {
-      return res.status(400).json({ message: 'Circle request already pending' });
+    res.json(user.trustCircles);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+// Follow / Unfollow
+const toggleFollow = async (req, res) => {
+  try {
+    const targetUser = await User.findById(req.params.userId);
+    if (!targetUser) return res.status(404).json({ message: 'User not found.' });
+    if (targetUser._id.toString() === req.user._id.toString()) {
+      return res.status(400).json({ message: "You can't follow yourself." });
     }
 
-    targetUser.circleRequests.push(senderId);
-    await targetUser.save();
+    const isFollowing = req.user.following.includes(targetUser._id);
 
-    await createNotificationAndEmit(req, {
-      recipient: targetUserId,
-      type: 'circle_request',
+    if (isFollowing) {
+      await User.findByIdAndUpdate(req.user._id, { $pull: { following: targetUser._id } });
+      await User.findByIdAndUpdate(targetUser._id, { $pull: { followers: req.user._id } });
+    } else {
+      await User.findByIdAndUpdate(req.user._id, { $addToSet: { following: targetUser._id } });
+      await User.findByIdAndUpdate(targetUser._id, { $addToSet: { followers: req.user._id } });
+      
+      await Notification.create({
+        recipient: targetUser._id,
+        sender: req.user._id,
+        type: 'follow',
+        message: `${req.user.firstName} ${req.user.lastName} started following you.`,
+        link: `/profile/${req.user.username}`,
+      });
+    }
+
+    res.json({ following: !isFollowing });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+// Skill Showcase (Feature #18)
+const updateSkillShowcase = async (req, res) => {
+  try {
+    const { title, description, link, tags } = req.body;
+    const media = req.files?.showcaseMedia?.map(f => f.path) || [];
+
+    const showcaseItem = { title, description, media, link, tags: tags ? JSON.parse(tags) : [] };
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { $push: { skillShowcase: showcaseItem } },
+      { new: true }
+    ).select('skillShowcase');
+
+    // Increase contribution score
+    await User.findByIdAndUpdate(req.user._id, { $inc: { contributionScore: 5 } });
+
+    res.json(user.skillShowcase);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+// Delete skill showcase item
+const deleteSkillShowcase = async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { $pull: { skillShowcase: { _id: req.params.itemId } } },
+      { new: true }
+    ).select('skillShowcase');
+
+    res.json(user.skillShowcase);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+// Accountability Partner (Feature #30)
+const requestAccountabilityPartner = async (req, res) => {
+  try {
+    const { partnerId } = req.body;
+    const partner = await User.findById(partnerId);
+    if (!partner) return res.status(404).json({ message: 'User not found.' });
+
+    await User.findByIdAndUpdate(partnerId, {
+      $push: {
+        accountabilityRequests: { from: req.user._id, status: 'pending' },
+      },
     });
 
-    res.json({ message: 'Circle request sent successfully' });
-  } catch (error) {
-    console.error('Circle Request Error:', error.message);
-    res.status(500).json({ message: 'Failed to send circle request' });
-  }
-};
-
-export const acceptCircleRequest = async (req, res) => {
-  try {
-    const { requesterId } = req.body;
-    const userId = req.user._id;
-
-    const user = await User.findById(userId);
-    const requester = await User.findById(requesterId);
-
-    if (!user || !requester) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    if (!user.circleRequests.includes(requesterId)) {
-      return res.status(400).json({ message: 'No pending circle request from this user' });
-    }
-
-    // Remove from request list, add to circles for both users
-    user.circleRequests = user.circleRequests.filter((id) => id.toString() !== requesterId);
-    if (!user.circle.includes(requesterId)) {
-      user.circle.push(requesterId);
-    }
-    if (!requester.circle.includes(userId)) {
-      requester.circle.push(userId);
-    }
-
-    await user.save();
-    await requester.save();
-
-    await createNotificationAndEmit(req, {
-      recipient: requesterId,
-      type: 'circle_accept',
+    await Notification.create({
+      recipient: partnerId,
+      sender: req.user._id,
+      type: 'partnerRequest',
+      message: `${req.user.firstName} wants to be your accountability partner!`,
+      link: `/profile/${req.user.username}`,
     });
 
-    res.json({ message: 'Circle request accepted' });
+    res.json({ message: 'Accountability partner request sent.' });
   } catch (error) {
-    console.error('Accept Request Error:', error.message);
-    res.status(500).json({ message: 'Failed to accept circle request' });
+    res.status(500).json({ message: 'Server error.' });
   }
 };
 
-export const rejectCircleRequest = async (req, res) => {
+// Respond to accountability request
+const respondAccountabilityRequest = async (req, res) => {
   try {
-    const { requesterId } = req.body;
-    const userId = req.user._id;
-
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    user.circleRequests = user.circleRequests.filter((id) => id.toString() !== requesterId);
-    await user.save();
-
-    res.json({ message: 'Circle request declined' });
-  } catch (error) {
-    console.error('Decline Request Error:', error.message);
-    res.status(500).json({ message: 'Failed to decline circle request' });
-  }
-};
-
-export const getCircleSuggestions = async (req, res) => {
-  try {
+    const { requestId, action } = req.body;
     const user = await User.findById(req.user._id);
-    const excludeIds = [req.user._id, ...user.circle, ...user.circleRequests];
+    const request = user.accountabilityRequests.id(requestId);
+    
+    if (!request) return res.status(404).json({ message: 'Request not found.' });
 
-    const suggestions = await User.find({ _id: { $nin: excludeIds } })
-      .select('username avatar bio isPremium')
+    request.status = action === 'accept' ? 'accepted' : 'declined';
+
+    if (action === 'accept') {
+      user.accountabilityPartner = request.from;
+      await User.findByIdAndUpdate(request.from, { accountabilityPartner: req.user._id });
+    }
+
+    await user.save();
+    res.json({ message: `Request ${action}ed.` });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+// Digital Legacy (Feature #5)
+const updateDigitalLegacy = async (req, res) => {
+  try {
+    const { action, trustedContact, message } = req.body;
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { digitalLegacy: { enabled: true, action, trustedContact, message } },
+      { new: true }
+    ).select('digitalLegacy');
+
+    res.json(user.digitalLegacy);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+// Privacy Dashboard (Feature #4)
+const getPrivacyDashboard = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id)
+      .select('trustCircles disposableProfiles digitalLegacy likeFreeModeEnabled slowFeedEnabled socialBurnoutSettings');
+    
+    const postsByVisibility = await Post.aggregate([
+      { $match: { author: user._id } },
+      { $group: { _id: '$visibility', count: { $sum: 1 } } },
+    ]);
+
+    res.json({
+      trustCircles: {
+        family: user.trustCircles.family.length,
+        friends: user.trustCircles.friends.length,
+        coworkers: user.trustCircles.coworkers.length,
+        classmates: user.trustCircles.classmates.length,
+      },
+      disposableProfiles: user.disposableProfiles.length,
+      digitalLegacy: user.digitalLegacy,
+      privacySettings: {
+        likeFreeModeEnabled: user.likeFreeModeEnabled,
+        slowFeedEnabled: user.slowFeedEnabled,
+        socialBurnoutSettings: user.socialBurnoutSettings,
+      },
+      postsByVisibility,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+// Search users
+const searchUsers = async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q) return res.json([]);
+
+    const users = await User.find({
+      $or: [
+        { firstName: { $regex: q, $options: 'i' } },
+        { lastName: { $regex: q, $options: 'i' } },
+        { username: { $regex: q, $options: 'i' } },
+      ],
+    })
+      .select('firstName lastName username avatar bio contributionScore skills')
+      .limit(20);
+
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+// Get suggested users
+const getSuggestedUsers = async (req, res) => {
+  try {
+    const currentUser = await User.findById(req.user._id);
+    const excludeIds = [
+      req.user._id,
+      ...currentUser.following,
+      ...currentUser.trustCircles.family,
+      ...currentUser.trustCircles.friends,
+      ...currentUser.trustCircles.coworkers,
+      ...currentUser.trustCircles.classmates,
+    ];
+
+    const users = await User.find({ _id: { $nin: excludeIds } })
+      .select('firstName lastName username avatar bio contributionScore skills')
+      .sort({ contributionScore: -1 })
       .limit(10);
 
-    res.json(suggestions);
+    res.json(users);
   } catch (error) {
-    console.error('Circle Suggestions Error:', error.message);
-    res.status(500).json({ message: 'Failed to retrieve connection suggestions' });
+    res.status(500).json({ message: 'Server error.' });
   }
 };
 
-// THOUGHTS (NOTES) ACTIONS
-export const updateThought = async (req, res) => {
+// Disposable Profile (Feature #3)
+const createDisposableProfile = async (req, res) => {
   try {
-    const { text, vibe } = req.body;
-    const user = await User.findById(req.user._id);
+    const { displayName, communityId, expiresInDays } = req.body;
+    const expiresAt = new Date(Date.now() + (expiresInDays || 30) * 24 * 60 * 60 * 1000);
 
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { $push: { disposableProfiles: { displayName, communityId, expiresAt } } },
+      { new: true }
+    ).select('disposableProfiles');
+
+    res.json(user.disposableProfiles);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+// Social Burnout Detection (Feature #7)
+const updateUsageTime = async (req, res) => {
+  try {
+    const { minutes } = req.body;
+    const user = await User.findById(req.user._id);
+    
+    const today = new Date().toDateString();
+    const lastReset = new Date(user.socialBurnoutSettings.lastResetDate).toDateString();
+    
+    if (today !== lastReset) {
+      user.socialBurnoutSettings.todayUsageMinutes = 0;
+      user.socialBurnoutSettings.lastResetDate = new Date();
     }
 
-    user.thought = {
-      text: text || '',
-      expiresAt: text ? new Date(Date.now() + 24 * 60 * 60 * 1000) : null, // 24 hours
-      vibe: vibe || { title: '', artist: '', previewUrl: '' },
-    };
-
+    user.socialBurnoutSettings.todayUsageMinutes += minutes;
     await user.save();
-    res.json(user.thought);
+
+    const { dailyLimitMinutes, todayUsageMinutes, breakReminderMinutes } = user.socialBurnoutSettings;
+    const warnings = [];
+
+    if (todayUsageMinutes >= dailyLimitMinutes) {
+      warnings.push({ type: 'limit_reached', message: "You've reached your daily usage limit. Consider taking a break! 🌿" });
+    } else if (todayUsageMinutes >= dailyLimitMinutes * 0.8) {
+      warnings.push({ type: 'approaching_limit', message: "You're approaching your daily usage limit." });
+    }
+
+    if (todayUsageMinutes % breakReminderMinutes < minutes) {
+      warnings.push({ type: 'break_reminder', message: "Time for a break! Step away and stretch. 🧘" });
+    }
+
+    res.json({ todayUsageMinutes, dailyLimitMinutes, warnings });
   } catch (error) {
-    console.error('Update Thought Error:', error.message);
-    res.status(500).json({ message: 'Failed to update Thought bubble' });
+    res.status(500).json({ message: 'Server error.' });
   }
 };
 
-export const getThoughts = async (req, res) => {
-  try {
-    const user = await User.findById(req.user._id);
-    // Find active thoughts of user and user's circle (friends)
-    const userIds = [req.user._id, ...user.circle];
-    
-    const activeUsers = await User.find({
-      _id: { $in: userIds },
-      'thought.text': { $ne: '' },
-      'thought.expiresAt': { $gt: new Date() },
-    }).select('username avatar thought');
-
-    res.json(activeUsers);
-  } catch (error) {
-    console.error('Get Thoughts Error:', error.message);
-    res.status(500).json({ message: 'Failed to retrieve thoughts' });
-  }
+module.exports = {
+  getProfile, updateProfile, updateTrustCircles, toggleFollow,
+  updateSkillShowcase, deleteSkillShowcase,
+  requestAccountabilityPartner, respondAccountabilityRequest,
+  updateDigitalLegacy, getPrivacyDashboard,
+  searchUsers, getSuggestedUsers, createDisposableProfile,
+  updateUsageTime,
 };

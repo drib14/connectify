@@ -1,30 +1,34 @@
-import express from 'express';
-import {
-  updateCanvas,
-  getUserCanvas,
-  sendCircleRequest,
-  acceptCircleRequest,
-  rejectCircleRequest,
-  getCircleSuggestions,
-  updateThought,
-  getThoughts,
-} from '../controllers/userController.js';
-import { protect } from '../middleware/authMiddleware.js';
+const express = require('express');
+const { auth } = require('../middleware/auth');
+const upload = require('../middleware/upload');
+const {
+  getProfile, updateProfile, updateTrustCircles, toggleFollow,
+  updateSkillShowcase, deleteSkillShowcase,
+  requestAccountabilityPartner, respondAccountabilityRequest,
+  updateDigitalLegacy, getPrivacyDashboard,
+  searchUsers, getSuggestedUsers, createDisposableProfile,
+  updateUsageTime,
+} = require('../controllers/userController');
 
 const router = express.Router();
 
-// Canvas/Profile routes
-router.put('/canvas', protect, updateCanvas);
-router.get('/canvas/:username', protect, getUserCanvas);
+router.get('/search', auth, searchUsers);
+router.get('/suggested', auth, getSuggestedUsers);
+router.get('/privacy-dashboard', auth, getPrivacyDashboard);
+router.get('/profile/:username', getProfile);
 
-// Circle (Friends) routes
-router.post('/circle/request', protect, sendCircleRequest);
-router.post('/circle/accept', protect, acceptCircleRequest);
-router.post('/circle/reject', protect, rejectCircleRequest);
-router.get('/circle/suggestions', protect, getCircleSuggestions);
+router.put('/profile', auth, upload.fields([{ name: 'avatar', maxCount: 1 }, { name: 'coverPhoto', maxCount: 1 }]), updateProfile);
+router.put('/trust-circles', auth, updateTrustCircles);
+router.post('/follow/:userId', auth, toggleFollow);
 
-// Thoughts (Notes) routes
-router.put('/thought', protect, updateThought);
-router.get('/thoughts', protect, getThoughts);
+router.post('/skill-showcase', auth, upload.fields([{ name: 'showcaseMedia', maxCount: 5 }]), updateSkillShowcase);
+router.delete('/skill-showcase/:itemId', auth, deleteSkillShowcase);
 
-export default router;
+router.post('/accountability/request', auth, requestAccountabilityPartner);
+router.post('/accountability/respond', auth, respondAccountabilityRequest);
+
+router.put('/digital-legacy', auth, updateDigitalLegacy);
+router.post('/disposable-profile', auth, createDisposableProfile);
+router.post('/usage-time', auth, updateUsageTime);
+
+module.exports = router;
