@@ -8,6 +8,7 @@ import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
 import Terms from './pages/Auth/Terms';
 import Welcome from './pages/Auth/Welcome';
+import LegalHub from './pages/Legal/LegalHub';
 
 // Main Layout
 import MainLayout from './components/Layout/MainLayout';
@@ -53,7 +54,9 @@ const AppRoutes = () => {
       {/* Public Auth Routes */}
       <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-      <Route path="/terms" element={<Terms />} />
+      <Route path="/terms" element={<Navigate to="/legal/terms" replace />} />
+      <Route path="/legal" element={<LegalHub />} />
+      <Route path="/legal/:section" element={<LegalHub />} />
       <Route path="/welcome" element={<ProtectedRoute><Welcome /></ProtectedRoute>} />
 
       {/* Protected App Routes */}

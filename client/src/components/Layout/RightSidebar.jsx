@@ -131,9 +131,18 @@ const RightSidebar = () => {
       </div>
 
       {/* Stress-Free Social Affirmation Footer */}
-      <div className="widget-footer">
+      <div className="widget-footer" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
         <p>Connectify © 2026</p>
-        <p>Designed for mental wellbeing</p>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '2px' }}>
+          <Link to="/legal/terms" style={{ color: 'var(--text-tertiary)', fontSize: '11px' }}>Terms</Link>
+          <span style={{ color: 'var(--text-tertiary)', fontSize: '11px' }}>•</span>
+          <Link to="/legal/privacy" style={{ color: 'var(--text-tertiary)', fontSize: '11px' }}>Privacy</Link>
+          <span style={{ color: 'var(--text-tertiary)', fontSize: '11px' }}>•</span>
+          <Link to="/legal/cookies" style={{ color: 'var(--text-tertiary)', fontSize: '11px' }}>Cookies</Link>
+          <span style={{ color: 'var(--text-tertiary)', fontSize: '11px' }}>•</span>
+          <Link to="/legal/guidelines" style={{ color: 'var(--text-tertiary)', fontSize: '11px' }}>Guidelines</Link>
+        </div>
+        <p style={{ fontSize: '10px', marginTop: '4px' }}>Designed for mental wellbeing</p>
       </div>
     </aside>
   );
