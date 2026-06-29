@@ -122,17 +122,17 @@ Monolith architecture is preferred.
 
 Frontend
 
-* Next.js
 * React
-* TypeScript
+* Vite
+* JavaScript (ES Modules)
 * Tailwind CSS
-* shadcn/ui
+* React Router
 
 Backend
 
 * Node.js
 * Express
-* TypeScript
+* JavaScript
 
 Database
 
@@ -141,7 +141,7 @@ Database
 
 Authentication
 
-* JWT
+* jsonwebtoken (JWT)
 * HTTP Only Cookies
 * bcrypt
 
@@ -151,8 +151,7 @@ State Management
 
 Validation
 
-* Zod
-* React Hook Form
+* Joi (backend)
 
 Storage
 
@@ -162,7 +161,7 @@ Deployment
 
 Frontend
 
-* Vercel
+* Vercel or Netlify
 
 Backend
 
@@ -185,35 +184,25 @@ Use Modular Monolith Architecture.
 
 Do NOT create microservices.
 
-Example
+Client (Vite + React)
 
-/app
+/src
 
 /components
 
-/features
+/pages
 
-/auth
-
-/dashboard
-
-/study
-
-/quiz
-
-/notes
-
-/profile
-
-/lib
+/context
 
 /hooks
 
-/types
+/lib
 
-/utils
+/assets
 
-/server
+Server (Express)
+
+/src
 
 /routes
 
@@ -226,6 +215,8 @@ Example
 /services
 
 /config
+
+/utils
 
 /docs
 
@@ -480,21 +471,21 @@ lowercase
 
 ---
 
-# 17. TypeScript
+# 17. JavaScript
 
-Avoid using:
+Use modern ES Modules (import/export).
 
-any
+Use const and let. Never var.
 
-Prefer:
+Use destructuring where readable.
 
-interfaces
+Use template literals.
 
-types
+Use async/await over raw promises.
 
-generic utilities
+Use JSDoc comments for complex functions.
 
-strict typing
+Use PropTypes for React components where helpful.
 
 ---
 
